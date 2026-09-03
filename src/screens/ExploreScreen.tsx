@@ -1,40 +1,99 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
-  ScrollView,
   Pressable,
   Image,
+  ScrollView,
   StyleSheet,
   TextInput,
+  ActivityIndicator,
 } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii, fontWeight, shadows } from '../theme/tokens'
 import AppHeader from '../components/AppHeader'
 import Chip from '../components/Chip'
 import SectionHeader from '../components/SectionHeader'
+import EmptyState from '../components/EmptyState'
+import { categoriesApi } from '../api/categories'
+import { portfolioApi } from '../api/portfolio'
+import type { CategoryResponse, PortfolioItemSummaryResponse } from '../api/types'
+import { useRouter } from '../navigation/router'
 
-const categoryFilters = ['All', 'Living Room', 'Bedroom', 'Kitchen', 'Bathroom', 'Dining', 'Study']
-const styleFilters = ['Modern', 'Minimal', 'Contemporary', 'Traditional', 'Bohemian']
+const FALLBACK_IMAGE = '/assets/ab679.png'
 
-const galleryImages = [
-  { key: 'ab679', uri: '/assets/ab679.png', height: 180 },
-  { key: '5aa20', uri: '/assets/5aa20.png', height: 220 },
-  { key: 'f1c0e', uri: '/assets/f1c0e.png', height: 180 },
-  { key: '90052', uri: '/assets/90052.png', height: 220 },
-  { key: '94bfe', uri: '/assets/94bfe.png', height: 180 },
-  { key: '89a8f', uri: '/assets/89a8f.png', height: 220 },
-]
+function titleCase(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
 
-const trendingStyles = [
-  { title: 'Modern Minimalist', image: '/assets/0b7a9.png' },
-  { title: 'Warm Contemporary', image: '/assets/68ec1.png' },
-  { title: 'Classic Indian', image: '/assets/de075.png' },
-]
+function formatPrice(n: number): string {
+  if (n >= 100000) {
+    const lakhs = n / 100000
+    return `Est. ₹${lakhs % 1 === 0 ? lakhs.toFixed(0) : lakhs.toFixed(1)}L`
+  }
+  return `Est. ₹${n.toLocaleString('en-IN')}`
+}
 
-export default function ExploreScreen() {
-  const [selectedCategory, setSelectedCategory] = useState('All')
-  const [selectedStyle, setSelectedStyle] = useState('Modern')
+type Props = {
+  onHamburger?: () => void
+}
+
+export default function ExploreScreen({ onHamburger }: Props) {
+  const router = useRouter()
+
+  const [categories, setCategories] = useState<CategoryResponse[]>([])
+  const [styleTags, setStyleTags] = useState<string[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<number | 'All'>('All')
+  const [selectedStyle, setSelectedStyle] = useState<string | 'All'>('All')
   const [searchText, setSearchText] = useState('')
+
+  const [items, setItems] = useState<PortfolioItemSummaryResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  // Load category chips + discover the real style tags in use, once.
+  useEffect(() => {
+    categoriesApi.getAll()
+      .then(all => setCategories(all.filter(c => c.serviceGroup === 'HOME_PROJECT')))
+      .catch(() => setCategories([]))
+
+    portfolioApi.search({ size: 50 })
+      .then(page => {
+        const tags = Array.from(new Set(page.content.map(i => i.styleTag).filter(Boolean))) as string[]
+        setStyleTags(tags)
+      })
+      .catch(() => setStyleTags([]))
+  }, [])
+
+  // Debounced search + refetch whenever filters change.
+  useEffect(() => {
+    setLoading(true)
+    setError(false)
+    const handle = setTimeout(() => {
+      portfolioApi.search({
+        category: selectedCategory === 'All' ? undefined : selectedCategory,
+        style: selectedStyle === 'All' ? undefined : selectedStyle,
+        search: searchText.trim() || undefined,
+        size: 20,
+      })
+        .then(page => setItems(page.content))
+        .catch(() => setError(true))
+        .finally(() => setLoading(false))
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [selectedCategory, selectedStyle, searchText])
+
+  // One representative image per room category, drawn from whatever's
+  // already loaded — no extra request needed.
+  const roomTiles = useMemo(() => {
+    return categories
+      .map(cat => {
+        const match = items.find(i => i.categoryName === cat.name)
+        return { id: cat.id, name: cat.name, image: match?.coverImageUrl || FALLBACK_IMAGE }
+      })
+      .filter(t => items.some(i => i.categoryName === t.name))
+  }, [categories, items])
+
+  const openInspiration = (id: number) => router.push('InspirationDetail', { id })
 
   return (
     <ScrollView
@@ -43,7 +102,7 @@ export default function ExploreScreen() {
       contentContainerStyle={styles.scrollContent}
     >
       {/* 1. Header */}
-      <AppHeader title="Explore" showHamburger={false} />
+      <AppHeader onHamburger={onHamburger} />
 
       {/* 2. Search bar */}
       <View style={styles.searchWrapper}>
@@ -65,72 +124,117 @@ export default function ExploreScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.chipRow}
       >
-        {categoryFilters.map((cat) => (
+        <Chip
+          label="All"
+          selected={selectedCategory === 'All'}
+          onPress={() => setSelectedCategory('All')}
+        />
+        {categories.map((cat) => (
           <Chip
-            key={cat}
-            label={cat}
-            selected={selectedCategory === cat}
-            onPress={() => setSelectedCategory(cat)}
+            key={cat.id}
+            label={cat.name}
+            selected={selectedCategory === cat.id}
+            onPress={() => setSelectedCategory(cat.id)}
           />
         ))}
       </ScrollView>
 
       {/* 4. Style filter chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipRow}
-      >
-        {styleFilters.map((style) => (
+      {styleTags.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
           <Chip
-            key={style}
-            label={style}
-            selected={selectedStyle === style}
-            onPress={() => setSelectedStyle(style)}
+            label="All Styles"
+            selected={selectedStyle === 'All'}
+            onPress={() => setSelectedStyle('All')}
           />
-        ))}
-      </ScrollView>
+          {styleTags.map((tag) => (
+            <Chip
+              key={tag}
+              label={titleCase(tag)}
+              selected={selectedStyle === tag}
+              onPress={() => setSelectedStyle(tag)}
+            />
+          ))}
+        </ScrollView>
+      )}
 
-      {/* 5. Inspiration Gallery */}
-      <View style={styles.gallerySectionHeader}>
-        <SectionHeader label="BROWSE" title="Inspiration Gallery" />
-      </View>
-      <View style={styles.galleryGrid}>
-        {galleryImages.map((img) => (
-          <Pressable
-            key={img.key}
-            style={[styles.galleryCell, { height: img.height }]}
-          >
-            <Image source={{ uri: img.uri }} style={styles.galleryImage} />
-          </Pressable>
-        ))}
+      {/* 5. Explore Projects */}
+      <View style={styles.sectionHeaderWrap}>
+        <SectionHeader label="PORTFOLIO" title="Explore Projects" />
       </View>
 
-      {/* 6. Trending Styles */}
-      <View style={styles.trendingHeader}>
-        <SectionHeader label="POPULAR NOW" title="Trending Styles" />
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.trendingScroll}
-      >
-        {trendingStyles.map((item) => (
-          <View key={item.title} style={styles.trendingCard}>
-            <Image source={{ uri: item.image }} style={styles.trendingImage} />
-            <View style={styles.trendingOverlay}>
-              <Text style={styles.trendingTitle}>{item.title}</Text>
-            </View>
+      {loading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color={colors.darkText} />
+        </View>
+      ) : error ? (
+        <View style={styles.stateWrap}>
+          <EmptyState
+            title="Couldn't load projects"
+            subtitle="Check your connection and try again."
+          />
+        </View>
+      ) : items.length === 0 ? (
+        <View style={styles.stateWrap}>
+          <EmptyState
+            title="No matches"
+            subtitle="Try a different category, style, or search term."
+          />
+        </View>
+      ) : (
+        <View style={styles.projectGrid}>
+          {items.map((item) => (
+            <Pressable key={item.id} style={styles.projectCard} onPress={() => openInspiration(item.id)}>
+              <Image source={{ uri: item.coverImageUrl || FALLBACK_IMAGE }} style={styles.projectImg} alt={item.title} />
+              <View style={styles.projectBody}>
+                <Text style={styles.projectTitle} numberOfLines={2}>{item.title}</Text>
+                <View style={styles.projectMeta}>
+                  <Text style={styles.projectCategory}>{item.categoryName}</Text>
+                  {item.priceEstimate > 0 && <Text style={styles.projectPrice}>{formatPrice(item.priceEstimate)}</Text>}
+                </View>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
+      {/* 6. Room Inspiration */}
+      {roomTiles.length > 0 && (
+        <>
+          <View style={styles.sectionHeaderWrap}>
+            <SectionHeader label="BROWSE BY ROOM" title="Room Inspiration" />
           </View>
-        ))}
-      </ScrollView>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.roomScroll}
+          >
+            {roomTiles.map((room) => (
+              <Pressable
+                key={room.id}
+                style={styles.roomTile}
+                onPress={() => setSelectedCategory(room.id)}
+              >
+                <Image source={{ uri: room.image }} style={styles.roomImage} alt={room.name} />
+                <View style={styles.roomOverlay}>
+                  <Text style={styles.roomLabel}>{room.name}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </>
+      )}
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
   )
 }
 
-const CELL_WIDTH = (375 - 48) / 2
+const CELL_WIDTH = (375 - 48 - 8) / 2
 
 const styles = StyleSheet.create({
   scroll: {
@@ -178,67 +282,102 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
 
-  // Gallery
-  gallerySectionHeader: {
+  sectionHeaderWrap: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
   },
-  galleryGrid: {
+  loadingWrap: {
+    paddingVertical: spacing.section,
+    alignItems: 'center',
+  },
+  stateWrap: {
+    minHeight: 160,
+  },
+
+  // Explore Projects
+  projectGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
     paddingHorizontal: spacing.xl,
     marginBottom: spacing.section,
   },
-  galleryCell: {
+  projectCard: {
     width: CELL_WIDTH,
+    backgroundColor: colors.cardBg,
     borderRadius: radii.md,
     overflow: 'hidden',
-    backgroundColor: colors.cardBg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.sm,
   },
-  galleryImage: {
+  projectImg: {
     width: '100%',
-    height: '100%',
+    height: 130,
     resizeMode: 'cover',
   },
-
-  // Trending
-  trendingHeader: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.lg,
+  projectBody: {
+    padding: spacing.sm,
+    gap: 4,
   },
-  trendingScroll: {
+  projectTitle: {
+    fontSize: fontSize.label,
+    fontFamily: fonts.heading,
+    color: colors.darkText,
+    fontWeight: fontWeight.semibold,
+    lineHeight: 18,
+  },
+  projectMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  projectCategory: {
+    fontSize: fontSize.tiny,
+    fontFamily: fonts.body,
+    color: colors.mutedText,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  projectPrice: {
+    fontSize: fontSize.caption,
+    fontFamily: fonts.body,
+    color: colors.accent,
+    fontWeight: fontWeight.semibold,
+  },
+
+  // Room Inspiration
+  roomScroll: {
     paddingHorizontal: spacing.xl,
     gap: 12,
     paddingBottom: spacing.xl,
   },
-  trendingCard: {
-    width: 200,
-    height: 250,
+  roomTile: {
+    width: 150,
+    height: 110,
     borderRadius: radii.md,
     overflow: 'hidden',
     position: 'relative',
-    ...shadows.sm,
   },
-  trendingImage: {
-    width: 200,
-    height: 250,
+  roomImage: {
+    width: 150,
+    height: 110,
     resizeMode: 'cover',
   },
-  trendingOverlay: {
+  roomOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: spacing.md,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  trendingTitle: {
+  roomLabel: {
     fontSize: fontSize.label,
-    fontFamily: fonts.heading,
+    fontFamily: fonts.body,
     color: colors.white,
-    fontWeight: fontWeight.bold,
+    fontWeight: fontWeight.semibold,
   },
 
   bottomSpacer: {

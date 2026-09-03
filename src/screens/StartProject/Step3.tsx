@@ -10,6 +10,14 @@ const timelines = ['As soon as possible', '1–3 months', '3–6 months', '6+ mo
 
 export default function Step3() {
   const router = useRouter()
+  const propertyType = router.getParam('propertyType') || ''
+  const bedrooms = router.getParam('bedrooms') || ''
+  const area = router.getParam('area') || ''
+  const location = router.getParam('location') || ''
+  const scope = router.getParam('scope') || ''
+  const style = router.getParam('style') || ''
+  const rooms = router.getParam('rooms') || []
+
   const [budget, setBudget] = useState('₹10L–₹25L')
   const [timeline, setTimeline] = useState('1–3 months')
   const [notes, setNotes] = useState('')
@@ -58,7 +66,9 @@ export default function Step3() {
         />
 
         <View style={s.actions}>
-          <PrimaryButton label="Review Request →" onPress={() => router.push('StartProject_Review', { budget, timeline, notes })} />
+          <PrimaryButton label="Review Request →" onPress={() => router.push('StartProject_Review', {
+            propertyType, bedrooms, area, location, scope, style, rooms, budget, timeline, notes,
+          })} />
           <SecondaryButton label="Back" onPress={() => router.back()} />
         </View>
       </ScrollView>

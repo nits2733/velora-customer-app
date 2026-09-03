@@ -1,80 +1,111 @@
-import React from 'react'
-import { View, Text, ScrollView, StyleSheet } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
 import AppHeader from '../components/AppHeader'
 import PrimaryButton from '../components/PrimaryButton'
 import SecondaryButton from '../components/SecondaryButton'
-import { colors, fonts, fontSize, spacing, radii, shadows } from '../theme/tokens'
+import ConfirmModal from '../components/ConfirmModal'
+import EmptyState from '../components/EmptyState'
+import { colors, fonts, fontSize, spacing, radii, shadows, statusColors } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
+import { bookingsApi } from '../api/bookings'
+import { quotationsApi } from '../api/quotations'
+import { ApiError } from '../api/client'
+import type { BookingResponse, QuotationResponse, QuotationStatus } from '../api/types'
 
-type QuotationData = {
-  id: string
-  services: string
-  amount: string
-  status: 'Approved' | 'Pending' | 'Rejected'
-  date: string
-  lineItems: { label: string; price: string }[]
-  validity: string
-  terms: string
+const STATUS_DISPLAY: Record<QuotationStatus, { label: string; key: keyof typeof statusColors }> = {
+  DRAFT: { label: 'Draft', key: 'pending' },
+  SENT: { label: 'Pending Review', key: 'pending' },
+  ACCEPTED: { label: 'Approved', key: 'approved' },
+  REJECTED: { label: 'Rejected', key: 'rejected' },
 }
 
-const mockData: Record<string, QuotationData> = {
-  Q001: {
-    id: 'Q001',
-    services: 'Full Home Interior + Painting',
-    amount: '4,50,000',
-    status: 'Approved',
-    date: 'Aug 28, 2026',
-    lineItems: [
-      { label: 'Living Room Interior Design', price: '1,80,000' },
-      { label: 'Master Bedroom Furnishing', price: '1,40,000' },
-      { label: 'Full Home Painting (3 BHK)', price: '75,000' },
-      { label: 'Modular Wardrobe (2 units)', price: '55,000' },
-    ],
-    validity: 'Valid until Sep 28, 2026',
-    terms: 'Payment: 30% advance on confirmation, 50% at midpoint, 20% on completion. All materials as per approved samples. Project timeline: 45–60 working days.',
-  },
-  Q002: {
-    id: 'Q002',
-    services: 'Carpentry + False Ceiling',
-    amount: '1,20,000',
-    status: 'Pending',
-    date: 'Aug 15, 2026',
-    lineItems: [
-      { label: 'Custom Carpentry Work', price: '70,000' },
-      { label: 'False Ceiling — Living Room', price: '35,000' },
-      { label: 'False Ceiling — Master Bedroom', price: '15,000' },
-    ],
-    validity: 'Valid until Sep 15, 2026',
-    terms: 'Payment: 40% advance on confirmation, 60% on completion. All material costs included. Timeline: 20–25 working days.',
-  },
-  Q003: {
-    id: 'Q003',
-    services: 'Modular Kitchen',
-    amount: '85,000',
-    status: 'Rejected',
-    date: 'Jul 20, 2026',
-    lineItems: [
-      { label: 'Modular Kitchen Cabinets', price: '55,000' },
-      { label: 'Countertop (Quartz)', price: '20,000' },
-      { label: 'Hardware & Fittings', price: '10,000' },
-    ],
-    validity: 'Expired',
-    terms: 'This quotation has been rejected. Please request a new quote if you would like to proceed.',
-  },
+function projectTitle(b: BookingResponse): string {
+  return b.categoryName || b.portfolioItemTitle || (b.requestType === 'FULL_HOME_PROJECT' ? 'Full Home Project' : 'Service Request')
 }
 
-const statusColors: Record<string, { bg: string; text: string; label: string }> = {
-  Pending: { bg: '#fef9c3', text: '#854d0e', label: 'Pending Review' },
-  Approved: { bg: '#dcfce7', text: '#15803d', label: 'Approved' },
-  Rejected: { bg: '#fee2e2', text: '#b91c1c', label: 'Rejected' },
+function formatDate(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 export default function QuotationDetailScreen() {
   const router = useRouter()
-  const id = router.getParam('id') || 'Q001'
-  const data = mockData[id] || mockData['Q001']
-  const sc = statusColors[data.status]
-  const showAccept = data.status === 'Pending' || data.status === 'Approved'
+  const bookingId = Number(router.getParam('bookingId'))
+
+  const [booking, setBooking] = useState<BookingResponse | null>(null)
+  const [quotation, setQuotation] = useState<QuotationResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [actionError, setActionError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [showRejectConfirm, setShowRejectConfirm] = useState(false)
+
+  useEffect(() => {
+    if (!bookingId) {
+      setLoading(false)
+      setError(true)
+      return
+    }
+    Promise.all([bookingsApi.getById(bookingId), quotationsApi.get(bookingId)])
+      .then(([b, q]) => {
+        setBooking(b)
+        setQuotation(q)
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }, [bookingId])
+
+  const handleAccept = async () => {
+    setActionError('')
+    setBusy(true)
+    try {
+      const updated = await quotationsApi.accept(bookingId)
+      setQuotation(updated)
+    } catch (e) {
+      setActionError(e instanceof ApiError ? 'Could not accept this quotation. Please try again.' : 'Something went wrong.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleReject = async () => {
+    setShowRejectConfirm(false)
+    setActionError('')
+    setBusy(true)
+    try {
+      const updated = await quotationsApi.reject(bookingId)
+      setQuotation(updated)
+    } catch (e) {
+      setActionError(e instanceof ApiError ? 'Could not reject this quotation. Please try again.' : 'Something went wrong.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.centerWrap}>
+        <ActivityIndicator color={colors.darkText} />
+      </View>
+    )
+  }
+
+  if (error || !booking || !quotation) {
+    return (
+      <View style={styles.screen}>
+        <AppHeader title="Quotation Details" showBack onBack={router.back} showHamburger={false} />
+        <EmptyState
+          title="Couldn't load this quotation"
+          subtitle="It may have been removed, or you don't have access to it."
+        />
+      </View>
+    )
+  }
+
+  const sc = STATUS_DISPLAY[quotation.status]
+  const scColors = statusColors[sc.key]
+  const showActions = quotation.status === 'SENT'
 
   return (
     <View style={styles.screen}>
@@ -82,58 +113,78 @@ export default function QuotationDetailScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
         {/* Status header card */}
-        <View style={[styles.statusCard, { backgroundColor: sc.bg }]}>
+        <View style={[styles.statusCard, { backgroundColor: scColors.bg }]}>
           <View style={styles.statusRow}>
-            <Text style={[styles.statusLabel, { color: sc.text }]}>{sc.label}</Text>
-            <Text style={[styles.statusId, { color: sc.text }]}>#{data.id}</Text>
+            <Text style={[styles.statusLabel, { color: scColors.text }]}>{sc.label}</Text>
+            <Text style={[styles.statusId, { color: scColors.text }]}>#{quotation.id}</Text>
           </View>
-          <Text style={styles.statusService}>{data.services}</Text>
-          <Text style={styles.statusDate}>Requested on {data.date}</Text>
+          <Text style={styles.statusService}>{projectTitle(booking)}</Text>
+          <Text style={styles.statusDate}>Requested on {formatDate(quotation.createdAt)}</Text>
         </View>
 
         {/* Services breakdown */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Services Breakdown</Text>
           <View style={styles.lineItems}>
-            {data.lineItems.map((item, idx) => (
-              <View key={idx} style={styles.lineItem}>
-                <Text style={styles.lineLabel}>{item.label}</Text>
-                <Text style={styles.linePrice}>₹{item.price}</Text>
+            {quotation.lineItems.map((item) => (
+              <View key={item.id} style={styles.lineItem}>
+                <Text style={styles.lineLabel}>{item.description}</Text>
+                <Text style={styles.linePrice}>₹{item.amount.toLocaleString('en-IN')}</Text>
               </View>
             ))}
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Total Estimate</Text>
-              <Text style={styles.totalAmount}>₹{data.amount}</Text>
+              <Text style={styles.totalAmount}>₹{quotation.totalAmount.toLocaleString('en-IN')}</Text>
             </View>
           </View>
         </View>
 
-        {/* Terms & validity */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Terms & Validity</Text>
-          <View style={styles.termsCard}>
-            <View style={styles.validityRow}>
-              <Text style={styles.validityIcon}>📅</Text>
-              <Text style={styles.validityText}>{data.validity}</Text>
+        {/* Notes from professional */}
+        {quotation.notes && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Notes from Your Professional</Text>
+            <View style={styles.termsCard}>
+              <Text style={styles.termsText}>{quotation.notes}</Text>
             </View>
-            <Text style={styles.termsText}>{data.terms}</Text>
           </View>
-        </View>
+        )}
 
         {/* Actions */}
         <View style={styles.actions}>
-          {showAccept && (
-            <PrimaryButton
-              label="Accept Quotation"
-              onPress={() => router.push('Checkout', { quotationId: data.id })}
-            />
-          )}
+          {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
+          {showActions ? (
+            <>
+              <PrimaryButton
+                label={busy ? 'Please wait…' : 'Accept Quotation'}
+                onPress={handleAccept}
+                disabled={busy}
+              />
+              <SecondaryButton
+                label="Reject Quotation"
+                onPress={() => setShowRejectConfirm(true)}
+              />
+            </>
+          ) : quotation.status === 'ACCEPTED' ? (
+            <Text style={styles.statusNote}>You accepted this quotation.</Text>
+          ) : quotation.status === 'REJECTED' ? (
+            <Text style={styles.statusNote}>You rejected this quotation.</Text>
+          ) : null}
           <SecondaryButton
-            label="Request Revision"
+            label="Contact Support"
             onPress={() => router.push('Support')}
           />
         </View>
       </ScrollView>
+
+      <ConfirmModal
+        visible={showRejectConfirm}
+        title="Reject this quotation?"
+        message="This will let your professional know you'd like to make changes or aren't proceeding."
+        confirmLabel="Reject"
+        danger
+        onCancel={() => setShowRejectConfirm(false)}
+        onConfirm={handleReject}
+      />
     </View>
   )
 }
@@ -142,6 +193,12 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  centerWrap: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scroll: {
     flex: 1,
@@ -250,23 +307,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBg2,
     borderRadius: radii.md,
     padding: spacing.lg,
-    gap: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
-  },
-  validityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  validityIcon: {
-    fontSize: 16,
-  },
-  validityText: {
-    fontSize: fontSize.label,
-    fontFamily: fonts.body,
-    color: colors.mutedText,
-    fontWeight: '600',
   },
   termsText: {
     fontSize: fontSize.label,
@@ -277,5 +319,18 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.md,
     marginTop: spacing.sm,
+  },
+  statusNote: {
+    fontSize: fontSize.label,
+    fontFamily: fonts.body,
+    color: colors.mutedText,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  errorText: {
+    fontSize: fontSize.label,
+    fontFamily: fonts.body,
+    color: colors.error,
+    textAlign: 'center',
   },
 })

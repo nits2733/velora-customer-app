@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
-import { colors, fonts, fontSize, radii, spacing, shadows } from '../theme/tokens'
+import { colors, fonts, fontSize, radii, spacing, shadows, statusColors } from '../theme/tokens'
 
 type Props = {
   title: string
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   activeBadge: {
-    backgroundColor: '#dcfce7',
+    backgroundColor: statusColors.approved.bg,
   },
   badgeText: {
     fontSize: fontSize.caption,
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeBadgeText: {
-    color: '#15803d',
+    color: statusColors.approved.text,
   },
   sub: {
     fontSize: fontSize.caption,

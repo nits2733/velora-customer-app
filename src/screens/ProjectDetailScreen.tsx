@@ -1,27 +1,93 @@
-import React from 'react'
-import { View, Text, ScrollView, Pressable, Image, StyleSheet } from 'react-native'
-import { colors, fonts, fontSize, spacing, radii, shadows } from '../theme/tokens'
+import React, { useEffect, useState } from 'react'
+import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, StyleSheet } from 'react-native'
+import { colors, fonts, fontSize, spacing, radii, shadows, statusColors } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 import PrimaryButton from '../components/PrimaryButton'
+import EmptyState from '../components/EmptyState'
+import { bookingsApi } from '../api/bookings'
+import type { BookingResponse, BookingStatus } from '../api/types'
 
-const milestones = [
-  { label: 'Design', done: true },
-  { label: 'Materials', done: true },
-  { label: 'Execution', done: false, current: true },
-  { label: 'Handover', done: false },
-]
+const CATEGORY_IMAGES: Record<string, string> = {
+  'Living Room': '/assets/95cf7.png',
+  'Bedroom': '/assets/f1c0e.png',
+  'Kitchen': '/assets/90052.png',
+  'Bathroom': '/assets/5aa20.png',
+}
+const FALLBACK_IMAGE = '/assets/ab679.png'
+
+const STATUS_DISPLAY: Record<BookingStatus, { label: string; key: keyof typeof statusColors }> = {
+  PENDING_ASSIGNMENT: { label: 'Awaiting Assignment', key: 'pending' },
+  PENDING: { label: 'Pending', key: 'pending' },
+  CONFIRMED: { label: 'In Progress', key: 'approved' },
+  COMPLETED: { label: 'Completed', key: 'approved' },
+  CANCELLED: { label: 'Cancelled', key: 'rejected' },
+}
+
+function projectTitle(b: BookingResponse): string {
+  return b.categoryName || b.portfolioItemTitle || (b.requestType === 'FULL_HOME_PROJECT' ? 'Full Home Project' : 'Service Request')
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+}
 
 export default function ProjectDetailScreen() {
   const router = useRouter()
-  const id = router.getParam('id') || '1'
+  const id = Number(router.getParam('id'))
+
+  const [booking, setBooking] = useState<BookingResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    if (!id) {
+      setLoading(false)
+      setError(true)
+      return
+    }
+    setLoading(true)
+    setError(false)
+    bookingsApi.getById(id)
+      .then(setBooking)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }, [id])
+
+  if (loading) {
+    return (
+      <View style={styles.centerWrap}>
+        <ActivityIndicator color={colors.darkText} />
+      </View>
+    )
+  }
+
+  if (error || !booking) {
+    return (
+      <View style={styles.root}>
+        <Pressable onPress={() => router.back()} style={styles.backBtnPlain} accessibilityLabel="Go back">
+          <Text style={styles.backArrow}>←</Text>
+        </Pressable>
+        <EmptyState
+          title="Couldn't load this project"
+          subtitle="Check your connection and try again."
+        />
+      </View>
+    )
+  }
+
+  const statusInfo = STATUS_DISPLAY[booking.status]
+  const sc = statusColors[statusInfo.key]
+  const heroImage = (booking.categoryName && CATEGORY_IMAGES[booking.categoryName]) || FALLBACK_IMAGE
 
   return (
     <View style={styles.root}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         {/* Hero */}
         <View style={styles.heroWrap}>
-          <Image source={{ uri: '/assets/95cf7.png' }} style={styles.hero} />
-          <Pressable onPress={router.back} style={styles.backBtn}>
+          <Image source={{ uri: heroImage }} style={styles.hero} alt={projectTitle(booking)} />
+          <Pressable onPress={() => router.back()} style={styles.backBtn} accessibilityLabel="Go back">
             <Text style={styles.backArrow}>←</Text>
           </Pressable>
         </View>
@@ -30,49 +96,67 @@ export default function ProjectDetailScreen() {
         <View style={styles.body}>
           {/* Status + Title */}
           <View style={styles.statusRow}>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>In Progress</Text>
+            <View style={[styles.statusBadge, { backgroundColor: sc.bg }]}>
+              <Text style={[styles.statusText, { color: sc.text }]}>{statusInfo.label}</Text>
             </View>
           </View>
-          <Text style={styles.projectTitle}>Living Room Renovation</Text>
+          <Text style={styles.projectTitle}>{projectTitle(booking)}</Text>
 
-          {/* Timeline */}
-          <Text style={styles.sectionHeading}>Progress Timeline</Text>
-          <View style={styles.timeline}>
-            {milestones.map((m, i) => (
-              <View key={m.label} style={styles.milestoneRow}>
-                <View style={styles.milestoneLeft}>
-                  <View style={[
-                    styles.dot,
-                    m.done && styles.dotDone,
-                    m.current && styles.dotCurrent,
-                  ]} />
-                  {i < milestones.length - 1 && (
-                    <View style={[styles.line, m.done && styles.lineDone]} />
-                  )}
-                </View>
-                <Text style={[
-                  styles.milestoneLabel,
-                  m.current && styles.milestoneCurrent,
-                  m.done && styles.milestoneDone,
-                ]}>
-                  {m.label}
-                  {m.current ? '  (Current)' : ''}
-                </Text>
+          {/* Details */}
+          <View style={styles.detailsCard}>
+            {booking.location && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Location</Text>
+                <Text style={styles.detailValue}>📍 {booking.location}</Text>
               </View>
-            ))}
+            )}
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Scheduled</Text>
+              <Text style={styles.detailValue}>{formatDate(booking.scheduledAt)}</Text>
+            </View>
+            {booking.budget != null && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Budget</Text>
+                <Text style={styles.detailValue}>₹{booking.budget.toLocaleString('en-IN')}</Text>
+              </View>
+            )}
+            {booking.preferredStyle && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Preferred Style</Text>
+                <Text style={styles.detailValue}>{booking.preferredStyle}</Text>
+              </View>
+            )}
           </View>
+
+          {booking.notes && (
+            <>
+              <Text style={styles.sectionHeading}>Your Notes</Text>
+              <View style={styles.infoCard}>
+                <Text style={styles.infoText}>{booking.notes}</Text>
+              </View>
+            </>
+          )}
 
           {/* Assigned Professional */}
           <Text style={styles.sectionHeading}>Assigned Professional</Text>
-          <View style={styles.proCard}>
-            <Image source={{ uri: '/assets/4af4b.png' }} style={styles.proAvatar} />
-            <View style={styles.proInfo}>
-              <Text style={styles.proName}>Arjun Sharma</Text>
-              <Text style={styles.proRole}>Senior Interior Designer</Text>
-              <Text style={styles.proRating}>4.9 ★</Text>
+          {booking.professionalName ? (
+            <View style={styles.proCard}>
+              <View style={styles.proAvatarFallback}>
+                <Text style={styles.proInitials}>
+                  {booking.professionalName.split(' ').map(w => w[0]).slice(0, 2).join('')}
+                </Text>
+              </View>
+              <View style={styles.proInfo}>
+                <Text style={styles.proName}>{booking.professionalName}</Text>
+              </View>
             </View>
-          </View>
+          ) : (
+            <View style={styles.infoCard}>
+              <Text style={styles.infoText}>
+                We're matching your project with the right professional. You'll be notified as soon as one is assigned.
+              </Text>
+            </View>
+          )}
 
           {/* Maintenance */}
           <Text style={styles.sectionHeading}>Maintenance</Text>
@@ -89,7 +173,7 @@ export default function ProjectDetailScreen() {
           </View>
 
           <View style={styles.ctaWrap}>
-            <PrimaryButton label="Contact Professional" onPress={() => {}} />
+            <PrimaryButton label="Contact Professional" onPress={() => router.push('Support')} />
           </View>
         </View>
       </ScrollView>
@@ -101,6 +185,12 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  centerWrap: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scroll: {
     flex: 1,
@@ -128,6 +218,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadows.md,
   },
+  backBtnPlain: {
+    margin: spacing.xl,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   backArrow: {
     fontSize: 18,
     color: colors.darkText,
@@ -141,7 +238,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   statusBadge: {
-    backgroundColor: '#dcfce7',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radii.round,
@@ -149,7 +245,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: fontSize.caption,
     fontFamily: fonts.body,
-    color: '#15803d',
     fontWeight: '600',
   },
   projectTitle: {
@@ -168,60 +263,28 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginTop: spacing.md,
   },
-  timeline: {
-    paddingLeft: spacing.sm,
-    gap: 0,
+  detailsCard: {
+    backgroundColor: colors.cardBg,
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.sm,
   },
-  milestoneRow: {
+  detailRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    minHeight: 48,
+    justifyContent: 'space-between',
   },
-  milestoneLeft: {
-    alignItems: 'center',
-    width: 16,
-  },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.border,
-    borderWidth: 2,
-    borderColor: colors.mutedText,
-    marginTop: 2,
-  },
-  dotDone: {
-    backgroundColor: colors.green,
-    borderColor: colors.green,
-  },
-  dotCurrent: {
-    backgroundColor: colors.darkText,
-    borderColor: colors.darkText,
-  },
-  line: {
-    width: 2,
-    flex: 1,
-    backgroundColor: colors.border,
-    marginTop: 2,
-  },
-  lineDone: {
-    backgroundColor: colors.green,
-  },
-  milestoneLabel: {
+  detailLabel: {
     fontSize: fontSize.body,
     fontFamily: fonts.body,
     color: colors.mutedText,
-    paddingTop: 0,
-    flex: 1,
   },
-  milestoneDone: {
+  detailValue: {
+    fontSize: fontSize.body,
+    fontFamily: fonts.body,
     color: colors.darkText,
     fontWeight: '500',
-  },
-  milestoneCurrent: {
-    color: colors.darkText,
-    fontWeight: '700',
   },
   proCard: {
     flexDirection: 'row',
@@ -234,11 +297,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadows.sm,
   },
-  proAvatar: {
+  proAvatarFallback: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: colors.border,
+    backgroundColor: colors.darkText,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  proInitials: {
+    fontSize: fontSize.body,
+    fontFamily: fonts.body,
+    color: colors.white,
+    fontWeight: '700',
   },
   proInfo: {
     flex: 1,
@@ -248,17 +319,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.body,
     fontFamily: fonts.heading,
     color: colors.darkText,
-    fontWeight: '600',
-  },
-  proRole: {
-    fontSize: fontSize.caption,
-    fontFamily: fonts.body,
-    color: colors.mutedText,
-  },
-  proRating: {
-    fontSize: fontSize.caption,
-    fontFamily: fonts.body,
-    color: '#b45309',
     fontWeight: '600',
   },
   infoCard: {

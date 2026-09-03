@@ -13,6 +13,9 @@ import {
 } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii, fontWeight, shadows } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
+import { useAuth } from '../context/AuthContext'
+import { bookingsApi } from '../api/bookings'
+import type { BookingResponse } from '../api/types'
 import AppHeader from '../components/AppHeader'
 import InspirationCard from '../components/InspirationCard'
 import SectionHeader from '../components/SectionHeader'
@@ -94,10 +97,24 @@ const INSP_H = 240
 
 export default function HomeScreen({ onHamburger }: Props) {
   const router = useRouter()
+  const auth = useAuth()
+  const firstName = auth.user?.fullName?.split(' ')[0]
+  const avatarInitial = auth.user?.fullName?.trim()?.[0]?.toUpperCase()
   const carouselRef = useRef<any>(null)
   const [scrollX, setScrollX] = useState(0)
   const [paused, setPaused] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [activeBooking, setActiveBooking] = useState<BookingResponse | null>(null)
+
+  useEffect(() => {
+    if (!auth.isAuthenticated) {
+      setActiveBooking(null)
+      return
+    }
+    bookingsApi.list()
+      .then(page => setActiveBooking(page.content.find(b => b.status === 'CONFIRMED') || null))
+      .catch(() => setActiveBooking(null))
+  }, [auth.isAuthenticated])
 
   const startAutoScroll = useCallback(() => {
     intervalRef.current = setInterval(() => {
@@ -129,8 +146,14 @@ export default function HomeScreen({ onHamburger }: Props) {
             <Text style={s.menuIcon}>☰</Text>
           </Pressable>
           <Text style={s.brandName}>VELORA</Text>
-          <Pressable onPress={() => router.push('Profile')} style={s.profileBtn}>
-            <View style={s.avatar}><Text style={s.avatarTxt}>R</Text></View>
+          <Pressable onPress={() => router.push('Profile')} style={s.profileBtn} accessibilityLabel="Profile">
+            {auth.avatarUrl ? (
+              <Image source={{ uri: auth.avatarUrl }} style={s.avatarImg} alt="Profile" />
+            ) : (
+              <View style={s.avatar}>
+                <Text style={s.avatarTxt}>{avatarInitial || '👤'}</Text>
+              </View>
+            )}
           </Pressable>
         </View>
 
@@ -139,7 +162,7 @@ export default function HomeScreen({ onHamburger }: Props) {
           <Image source={{ uri: '/assets/419c8.png' }} style={s.heroImg} />
           <View style={s.heroGrad} />
           <View style={s.heroContent}>
-            <Text style={s.heroGreeting}>Hi, Rahul</Text>
+            <Text style={s.heroGreeting}>{firstName ? `Hi, ${firstName}` : 'Hi there'}</Text>
             <Text style={s.heroTitle}>Design the home{'\n'}you want to live in.</Text>
             <Text style={s.heroSub}>From complete home transformations{'\n'}to the service you need today.</Text>
             <View style={s.heroBtns}>
@@ -154,17 +177,20 @@ export default function HomeScreen({ onHamburger }: Props) {
         </View>
 
         {/* ── Active Project ───────────────────────────── */}
-        <Pressable style={s.activeCard} onPress={() => router.push('ProjectDetail', { id: '1' })}>
-          <Text style={s.activeLabel}>● ACTIVE PROJECT</Text>
-          <Text style={s.activeTitle}>Living Room Renovation</Text>
-          <View style={s.progressTrack}>
-            <View style={[s.progressFill, { width: '65%' }]} />
-          </View>
-          <View style={s.progressRow}>
-            <Text style={s.progressPct}>65% complete</Text>
-            <Text style={s.viewProgress}>View Progress →</Text>
-          </View>
-        </Pressable>
+        {activeBooking && (
+          <Pressable style={s.activeCard} onPress={() => router.push('ProjectDetail', { id: String(activeBooking.id) })}>
+            <Text style={s.activeLabel}>● ACTIVE PROJECT</Text>
+            <Text style={s.activeTitle}>
+              {activeBooking.categoryName || activeBooking.portfolioItemTitle || 'Your Project'}
+            </Text>
+            <View style={s.progressRow}>
+              <Text style={s.progressPct}>
+                {activeBooking.professionalName ? `Assigned to ${activeBooking.professionalName}` : 'Awaiting assignment'}
+              </Text>
+              <Text style={s.viewProgress}>View Details →</Text>
+            </View>
+          </Pressable>
+        )}
 
         {/* ── What are you looking for? ─────────────────── */}
         <View style={s.section}>
@@ -315,10 +341,11 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xl, paddingTop: 14, paddingBottom: 10 },
   menuBtn: { padding: 4 },
   menuIcon: { fontSize: 20, color: colors.darkText },
-  brandName: { fontFamily: fonts.body, fontSize: 17, fontWeight: fontWeight.bold, color: colors.darkText, letterSpacing: 3 },
+  brandName: { fontFamily: fonts.heading, fontSize: 22, fontWeight: fontWeight.bold, color: colors.darkText, letterSpacing: 2 },
   profileBtn: { padding: 4 },
   avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.darkText, alignItems: 'center', justifyContent: 'center' },
   avatarTxt: { fontFamily: fonts.heading, fontSize: 14, color: colors.white, fontWeight: fontWeight.semibold },
+  avatarImg: { width: 34, height: 34, borderRadius: 17 },
 
   // Hero
   hero: { height: 380, position: 'relative', justifyContent: 'flex-end' },
@@ -338,8 +365,6 @@ const s = StyleSheet.create({
   activeCard: { backgroundColor: colors.cardBg2, marginHorizontal: spacing.xl, marginTop: spacing.xl, marginBottom: spacing.sm, padding: spacing.lg, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border },
   activeLabel: { fontFamily: fonts.body, fontSize: 10, color: colors.green, letterSpacing: 1.2, textTransform: 'uppercase', fontWeight: fontWeight.semibold, marginBottom: 6 },
   activeTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.darkText, fontWeight: fontWeight.semibold, marginBottom: 10 },
-  progressTrack: { height: 4, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden', marginBottom: 6 },
-  progressFill: { height: '100%', backgroundColor: colors.darkText, borderRadius: 2 },
   progressRow: { flexDirection: 'row', justifyContent: 'space-between' },
   progressPct: { fontFamily: fonts.body, fontSize: fontSize.caption, color: colors.mutedText },
   viewProgress: { fontFamily: fonts.body, fontSize: fontSize.caption, color: colors.darkText, fontWeight: fontWeight.semibold },

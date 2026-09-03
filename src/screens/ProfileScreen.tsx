@@ -1,10 +1,20 @@
-import React, { useState } from 'react'
-import { View, Text, ScrollView, Pressable, Image, StyleSheet, Modal } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, StyleSheet } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii, shadows } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
+import { useAuth } from '../context/AuthContext'
 import AppHeader from '../components/AppHeader'
-import PrimaryButton from '../components/PrimaryButton'
-import SecondaryButton from '../components/SecondaryButton'
+import ConfirmModal from '../components/ConfirmModal'
+import { userApi } from '../api/user'
+import { uploadsApi } from '../api/uploads'
+import { bookingsApi } from '../api/bookings'
+import { quotationsApi } from '../api/quotations'
+import { favoritesApi } from '../api/favorites'
+import { ApiError } from '../api/client'
+import type { UserProfileResponse } from '../api/types'
+
+const FALLBACK_AVATAR = '/assets/4af4b.png'
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
 const settingsItems = [
   { label: 'My Quotations', route: 'MyQuotations' },
@@ -18,9 +28,86 @@ const settingsItems = [
   { label: 'Delete Account', route: 'DeleteAccount' },
 ]
 
+function formatMemberSince(createdAt: string): string {
+  const d = new Date(createdAt)
+  if (isNaN(d.getTime())) return ''
+  return `Member since ${d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+}
+
 export default function ProfileScreen() {
   const router = useRouter()
+  const auth = useAuth()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [profile, setProfile] = useState<UserProfileResponse | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [stats, setStats] = useState<{ projects: number; quotations: number; saved: number } | null>(null)
+
+  useEffect(() => {
+    userApi.getProfile()
+      .then(setProfile)
+      .catch(() => setProfile(null))
+  }, [])
+
+  useEffect(() => {
+    bookingsApi.list(0, 100)
+      .then(async page => {
+        const results = await Promise.allSettled(
+          page.content.map(b => quotationsApi.get(b.id))
+        )
+        const quotationsCount = results.filter(
+          (r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof quotationsApi.get>>> =>
+            r.status === 'fulfilled' && r.value.status !== 'DRAFT'
+        ).length
+
+        const [professionalsFav, portfolioFav] = await Promise.all([
+          favoritesApi.listProfessionals(0, 1).catch(() => null),
+          favoritesApi.listPortfolioItems(0, 1).catch(() => null),
+        ])
+        const saved = (professionalsFav?.totalElements || 0) + (portfolioFav?.totalElements || 0)
+
+        setStats({ projects: page.totalElements, quotations: quotationsCount, saved })
+      })
+      .catch(() => setStats({ projects: 0, quotations: 0, saved: 0 }))
+  }, [])
+
+  const displayName = profile?.fullName || auth.user?.fullName || 'Your Account'
+  const displayEmail = profile?.email || auth.user?.email || ''
+
+  const handlePickAvatar = () => {
+    setAvatarError('')
+    fileInputRef.current?.click()
+  }
+
+  const handleAvatarSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Please choose an image file.')
+      return
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setAvatarError('Image must be smaller than 5MB.')
+      return
+    }
+
+    setAvatarError('')
+    setUploadingAvatar(true)
+    try {
+      const { url } = await uploadsApi.upload(file, 'AVATAR')
+      const updated = await userApi.updateProfile({ avatarUrl: url })
+      setProfile(updated)
+      auth.updateAvatar(updated.avatarUrl || null)
+    } catch (e) {
+      setAvatarError(e instanceof ApiError ? 'Upload failed. Please try again.' : 'Something went wrong.')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   const handleSettingsPress = (route: string) => {
     if (route === '__logout__') {
@@ -30,29 +117,56 @@ export default function ProfileScreen() {
     }
   }
 
+  const handleLogout = async () => {
+    setShowLogoutModal(false)
+    await auth.logout()
+    router.replace('Home')
+  }
+
   return (
     <View style={styles.root}>
-      <AppHeader title="Profile" showHamburger={false} />
+      <AppHeader title="Profile" showBack onBack={() => router.back()} showHamburger={false} />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         {/* Profile header card */}
         <View style={styles.profileCard}>
-          <Image source={{ uri: '/assets/4af4b.png' }} style={styles.avatar} />
-          <Text style={styles.name}>Rahul Mehta</Text>
-          <Text style={styles.email}>rahul.mehta@gmail.com</Text>
-          <Text style={styles.memberSince}>Member since January 2025</Text>
+          <Pressable onPress={handlePickAvatar} accessibilityLabel="Change profile photo" style={styles.avatarWrap}>
+            <Image source={{ uri: profile?.avatarUrl || FALLBACK_AVATAR }} style={styles.avatar} alt={displayName} />
+            <View style={styles.avatarEditBadge}>
+              {uploadingAvatar ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Text style={styles.avatarEditIcon}>✎</Text>
+              )}
+            </View>
+          </Pressable>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarSelected}
+            style={{ display: 'none' }}
+          />
+          {avatarError ? <Text style={styles.avatarError}>{avatarError}</Text> : null}
+          <Text style={styles.name}>{displayName}</Text>
+          <Text style={styles.email}>{displayEmail}</Text>
+          {profile?.createdAt && <Text style={styles.memberSince}>{formatMemberSince(profile.createdAt)}</Text>}
         </View>
 
         {/* Stats row */}
         <View style={styles.statsRow}>
           {[
-            { label: 'Projects', value: '4' },
-            { label: 'Quotations', value: '7' },
-            { label: 'Saved', value: '12' },
+            { label: 'Projects', value: stats?.projects },
+            { label: 'Quotations', value: stats?.quotations },
+            { label: 'Saved', value: stats?.saved },
           ].map((stat, i) => (
             <React.Fragment key={stat.label}>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stat.value}</Text>
+                {stats ? (
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                ) : (
+                  <ActivityIndicator size="small" color={colors.darkText} />
+                )}
                 <Text style={styles.statLabel}>{stat.label}</Text>
               </View>
               {i < 2 && <View style={styles.statDivider} />}
@@ -86,34 +200,15 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* Logout confirm modal */}
-      <Modal
+      <ConfirmModal
         visible={showLogoutModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowLogoutModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Log Out?</Text>
-            <Text style={styles.modalBody}>Are you sure you want to log out of your account?</Text>
-            <View style={styles.modalActions}>
-              <SecondaryButton
-                label="Cancel"
-                onPress={() => setShowLogoutModal(false)}
-                style={styles.modalCancelBtn}
-              />
-              <PrimaryButton
-                label="Log Out"
-                onPress={() => {
-                  setShowLogoutModal(false)
-                  router.replace('Home')
-                }}
-                style={styles.modalConfirmBtn}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
+        title="Log Out?"
+        message="Are you sure you want to log out of your account?"
+        confirmLabel="Log Out"
+        danger
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+      />
     </View>
   )
 }
@@ -141,12 +236,40 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     ...shadows.sm,
   },
+  avatarWrap: {
+    width: 60,
+    height: 60,
+    marginBottom: spacing.xs,
+    position: 'relative',
+  },
   avatar: {
     width: 60,
     height: 60,
     borderRadius: 30,
     backgroundColor: colors.border,
-    marginBottom: spacing.xs,
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.darkText,
+    borderWidth: 2,
+    borderColor: colors.cardBg2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarEditIcon: {
+    fontSize: 11,
+    color: colors.white,
+  },
+  avatarError: {
+    fontSize: fontSize.caption,
+    fontFamily: fonts.body,
+    color: colors.error,
+    textAlign: 'center',
   },
   name: {
     fontSize: fontSize.h3,
@@ -225,49 +348,11 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   logoutLabel: {
-    color: '#dc2626',
+    color: colors.error,
   },
   chevron: {
     fontSize: fontSize.body,
     color: colors.mutedText,
     fontFamily: fonts.body,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalBox: {
-    backgroundColor: colors.white,
-    borderRadius: radii.md,
-    padding: spacing.xl,
-    width: '80%',
-    gap: spacing.lg,
-    ...shadows.lg,
-  },
-  modalTitle: {
-    fontSize: fontSize.h3,
-    fontFamily: fonts.heading,
-    color: colors.darkText,
-    fontWeight: '700',
-  },
-  modalBody: {
-    fontSize: fontSize.body,
-    fontFamily: fonts.body,
-    color: colors.mutedText,
-    lineHeight: 22,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.sm,
-  },
-  modalCancelBtn: {
-    flex: 1,
-  },
-  modalConfirmBtn: {
-    flex: 1,
-    backgroundColor: '#dc2626',
   },
 })

@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, ScrollView, StyleSheet } from 'react-native'
 import AppHeader from '../components/AppHeader'
-import { colors, fonts, fontSize, spacing, radii, shadows } from '../theme/tokens'
+import { colors, fonts, fontSize, spacing, radii, shadows, statusColors } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 
 type LocationItem = {
@@ -19,8 +19,8 @@ const locations: LocationItem[] = [
 ]
 
 const statusStyle: Record<string, { bg: string; text: string }> = {
-  Active: { bg: '#dcfce7', text: '#15803d' },
-  Upcoming: { bg: '#fef9c3', text: '#854d0e' },
+  Active: statusColors.approved,
+  Upcoming: statusColors.pending,
 }
 
 export default function WorkMapScreen() {

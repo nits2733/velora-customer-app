@@ -1,6 +1,13 @@
-const BASE_URL = 'http://localhost:8080'
+// Relative — same-origin in dev (proxied to the backend by vite.config.ts's
+// server.proxy) and in production (behind a reverse proxy that routes /api).
+const BASE_URL = ''
 
 let accessToken: string | null = null
+let refreshToken: string | null = null
+
+// Called by AuthContext when a token refresh fails, so it can clear the
+// user's session state in sync with this module's tokens being cleared.
+let onSessionExpired: (() => void) | null = null
 
 export function setAccessToken(token: string | null) {
   accessToken = token
@@ -8,6 +15,38 @@ export function setAccessToken(token: string | null) {
 
 export function getAccessToken(): string | null {
   return accessToken
+}
+
+export function setRefreshToken(token: string | null) {
+  refreshToken = token
+}
+
+export function setSessionExpiredHandler(handler: (() => void) | null) {
+  onSessionExpired = handler
+}
+
+type AuthTokenResponse = { accessToken: string; refreshToken: string }
+
+let refreshInFlight: Promise<AuthTokenResponse> | null = null
+
+// De-duplicates concurrent refresh attempts (several requests can 401 at
+// once) — everyone awaits the same in-flight refresh call.
+function refreshTokens(): Promise<AuthTokenResponse> {
+  if (!refreshInFlight) {
+    refreshInFlight = fetch(`${BASE_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('refresh failed')
+        return res.json() as Promise<AuthTokenResponse>
+      })
+      .finally(() => {
+        refreshInFlight = null
+      })
+  }
+  return refreshInFlight
 }
 
 type RequestOptions = {
@@ -18,18 +57,23 @@ type RequestOptions = {
 }
 
 function buildUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
-  const url = new URL(path, BASE_URL)
+  const query = new URLSearchParams()
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== null) {
-        url.searchParams.set(k, String(v))
+        query.set(k, String(v))
       }
     })
   }
-  return url.toString()
+  const queryString = query.toString()
+  return `${BASE_URL}${path}${queryString ? `?${queryString}` : ''}`
 }
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return doRequest<T>(path, options, /* allowRefresh */ true)
+}
+
+async function doRequest<T>(path: string, options: RequestOptions, allowRefresh: boolean): Promise<T> {
   const { method = 'GET', body, headers = {}, params } = options
 
   const reqHeaders: Record<string, string> = {
@@ -49,6 +93,20 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     headers: reqHeaders,
     body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
   })
+
+  if (res.status === 401 && allowRefresh && refreshToken && !path.startsWith('/api/auth/')) {
+    try {
+      const tokens = await refreshTokens()
+      accessToken = tokens.accessToken
+      refreshToken = tokens.refreshToken
+      return doRequest<T>(path, options, /* allowRefresh */ false)
+    } catch {
+      accessToken = null
+      refreshToken = null
+      onSessionExpired?.()
+      throw new ApiError(401, 'Session expired')
+    }
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => '')

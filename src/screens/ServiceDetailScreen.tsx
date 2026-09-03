@@ -1,77 +1,122 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { View, Text, Image, Pressable, ScrollView, StyleSheet } from 'react-native'
-import { colors, fonts, fontSize, spacing, shadows } from '../theme/tokens'
+import { colors, fonts, fontSize, spacing, shadows, radii } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 import { useCart } from '../context/CartContext'
 import PrimaryButton from '../components/PrimaryButton'
 import SecondaryButton from '../components/SecondaryButton'
 import Chip from '../components/Chip'
+import InputField from '../components/InputField'
+import SectionHeader from '../components/SectionHeader'
+import InspirationCard from '../components/InspirationCard'
+import FAQItem from '../components/FAQItem'
+import { portfolioApi } from '../api/portfolio'
+import type { PortfolioItemSummaryResponse } from '../api/types'
 
-const SERVICE_OPTIONS: Record<string, string[]> = {
-  Painting: ['Interior', 'Exterior', 'Both'],
-  Electrical: ['New Wiring', 'Repairs', 'Full Upgrade'],
-  Plumbing: ['Bathroom', 'Kitchen', 'Full Home'],
-  Carpentry: ['Furniture', 'Cabinets', 'Doors & Windows'],
-  Tiling: ['Flooring', 'Wall Tiles', 'Both'],
-  'False Ceiling': ['Living Room', 'Bedroom', 'Full Home'],
-  'Plaster Work': ['Interior', 'Exterior', 'Both'],
-  'Complete Interior': ['Basic', 'Standard', 'Premium'],
+type Catalog = { options: string[]; includes: string[]; priceRange: string; timeline: string }
+
+// Curated supplemental data — the backend's CategoryResponse has no
+// options/includes/price/timeline fields, so this stays local, keyed by
+// the real category id (not the fragile name-string keying used before).
+const SERVICE_CATALOG: Record<number, Catalog> = {
+  8: { // Painting
+    options: ['Interior', 'Exterior', 'Both'],
+    includes: ['Surface preparation & repair', 'Primer application', 'Two coats of paint', 'Clean-up & waste disposal', 'Post-work inspection'],
+    priceRange: '₹18,000 – ₹65,000',
+    timeline: '3–7 working days',
+  },
+  9: { // Plumbing
+    options: ['Bathroom', 'Kitchen', 'Full Home'],
+    includes: ['Site inspection', 'Pipe installation/repair', 'Fixture fitting', 'Leak testing', 'Final walkthrough'],
+    priceRange: '₹8,000 – ₹35,000',
+    timeline: '1–4 working days',
+  },
+  10: { // Electrical
+    options: ['New Wiring', 'Repairs', 'Full Upgrade'],
+    includes: ['Site assessment', 'Material procurement', 'Wiring & fitting', 'Safety testing', 'Certification'],
+    priceRange: '₹12,000 – ₹45,000',
+    timeline: '2–6 working days',
+  },
+  11: { // Carpentry
+    options: ['Furniture', 'Cabinets', 'Doors & Windows'],
+    includes: ['Design consultation', 'Material selection', 'Custom fabrication', 'Installation', 'Finishing & polish'],
+    priceRange: '₹25,000 – ₹1,20,000',
+    timeline: '10–20 working days',
+  },
+  12: { // False Ceiling
+    options: ['Living Room', 'Bedroom', 'Full Home'],
+    includes: ['Structural assessment', 'Framework installation', 'Panel fitting', 'Lighting integration', 'Finishing'],
+    priceRange: '₹15,000 – ₹55,000',
+    timeline: '4–8 working days',
+  },
+  13: { // Modular Kitchen
+    options: ['Basic', 'Standard', 'Premium'],
+    includes: ['Design planning', 'Material sourcing', 'Execution by experts', 'Project management', 'Handover & support'],
+    priceRange: '₹1,50,000 – ₹6,00,000',
+    timeline: '20–35 working days',
+  },
 }
 
-const SERVICE_DESCRIPTIONS: Record<string, string> = {
-  Painting: 'Professional painting services to refresh and beautify your home. Our expert painters use premium quality paints to deliver a flawless finish that lasts for years.',
-  Electrical: 'Certified electricians handle everything from minor repairs to complete rewiring. We ensure all work meets safety standards and building codes.',
-  Plumbing: 'Expert plumbers for installation, repair, and maintenance. From leaky faucets to full bathroom fittings, we handle it all with precision.',
-  Carpentry: 'Skilled carpenters craft custom furniture, cabinets, and woodwork tailored to your space and style preferences.',
-  Tiling: 'Quality tiling services for floors and walls. We work with all tile types including ceramic, vitrified, marble, and more.',
-  'False Ceiling': 'Modern false ceiling solutions to enhance your interiors with improved aesthetics and lighting options.',
-  'Plaster Work': 'Expert plastering for smooth walls and ceilings. We provide durable, long-lasting finishes for new construction and renovation.',
-  'Complete Interior': 'End-to-end interior design and execution covering every aspect of your home transformation.',
+const DEFAULT_CATALOG: Catalog = {
+  options: ['Standard', 'Premium', 'Custom'],
+  includes: ['Initial consultation', 'Professional execution', 'Quality materials', 'Clean-up', 'Post-work review'],
+  priceRange: '₹10,000 – ₹50,000',
+  timeline: '5–10 working days',
 }
 
-const SERVICE_INCLUDES: Record<string, string[]> = {
-  Painting: ['Surface preparation & repair', 'Primer application', 'Two coats of paint', 'Clean-up & waste disposal', 'Post-work inspection'],
-  Electrical: ['Site assessment', 'Material procurement', 'Wiring & fitting', 'Safety testing', 'Certification'],
-  Plumbing: ['Site inspection', 'Pipe installation/repair', 'Fixture fitting', 'Leak testing', 'Final walkthrough'],
-  Carpentry: ['Design consultation', 'Material selection', 'Custom fabrication', 'Installation', 'Finishing & polish'],
-  Tiling: ['Surface leveling', 'Adhesive application', 'Tile laying & grouting', 'Edge finishing', 'Clean-up'],
-  'False Ceiling': ['Structural assessment', 'Framework installation', 'Panel fitting', 'Lighting integration', 'Finishing'],
-  'Plaster Work': ['Surface preparation', 'Base coat application', 'Finish coat', 'Curing period', 'Quality check'],
-  'Complete Interior': ['Design planning', 'Material sourcing', 'Execution by experts', 'Project management', 'Handover & support'],
-}
+const DEFAULT_DESCRIPTION = 'Professional service delivered by experienced and vetted experts. We ensure quality workmanship and timely completion of every project.'
 
-const SERVICE_PRICES: Record<string, string> = {
-  Painting: '₹18,000 – ₹65,000',
-  Electrical: '₹12,000 – ₹45,000',
-  Plumbing: '₹8,000 – ₹35,000',
-  Carpentry: '₹25,000 – ₹1,20,000',
-  Tiling: '₹20,000 – ₹80,000',
-  'False Ceiling': '₹15,000 – ₹55,000',
-  'Plaster Work': '₹10,000 – ₹40,000',
-  'Complete Interior': '₹3,50,000 – ₹12,00,000',
+const TRUST_BADGES = [
+  { icon: '✓', label: 'Vetted Professionals' },
+  { icon: '🛡', label: '12-Month Warranty' },
+  { icon: '⏱', label: 'On-Time Delivery' },
+]
+
+const FAQS = [
+  { question: 'How is the final price decided?', answer: 'The price range shown is an estimate. Our team visits your site to assess scope, materials, and access before sharing a final, itemized quotation — free of charge and with no obligation.' },
+  { question: 'Can I change the scope after booking?', answer: "Yes. You can adjust quantity, options, or add notes any time before the quotation is finalized. Once work begins, changes go through a simple revised-quotation approval." },
+  { question: 'What if I\'m not satisfied with the work?', answer: 'Every service is backed by our workmanship warranty. If something isn\'t right within the warranty period, we send a professional back to fix it at no extra cost.' },
+]
+
+function getParam(router: ReturnType<typeof useRouter>, key: string): string {
+  const v = router.getParam(key)
+  return typeof v === 'string' ? v : ''
 }
 
 export default function ServiceDetailScreen() {
   const router = useRouter()
   const { addToCart } = useCart()
 
-  const name: string = router.getParam('name') || 'Service'
-  const image: string = router.getParam('image') || '/assets/45a7e.png'
+  const categoryId = Number(router.getParam('id')) || 0
+  const name = getParam(router, 'name') || 'Service'
+  const description = getParam(router, 'description') || DEFAULT_DESCRIPTION
+  const image = getParam(router, 'image') || '/assets/45a7e.png'
 
-  const options = SERVICE_OPTIONS[name] || ['Standard', 'Premium', 'Custom']
-  const description = SERVICE_DESCRIPTIONS[name] || 'Professional service delivered by experienced and vetted experts. We ensure quality workmanship and timely completion of every project.'
-  const includes = SERVICE_INCLUDES[name] || ['Initial consultation', 'Professional execution', 'Quality materials', 'Clean-up', 'Post-work review']
-  const priceRange = SERVICE_PRICES[name] || '₹10,000 – ₹50,000'
+  const catalog = SERVICE_CATALOG[categoryId] || DEFAULT_CATALOG
 
-  const [selectedOption, setSelectedOption] = useState(options[0])
+  const [selectedOption, setSelectedOption] = useState(catalog.options[0])
+  const [quantity, setQuantity] = useState(1)
+  const [notes, setNotes] = useState('')
   const [added, setAdded] = useState(false)
+
+  const [recentWork, setRecentWork] = useState<PortfolioItemSummaryResponse[]>([])
+
+  useEffect(() => {
+    if (!categoryId) return
+    portfolioApi.search({ category: categoryId, size: 6 })
+      .then(page => setRecentWork(page.content))
+      .catch(() => setRecentWork([]))
+  }, [categoryId])
 
   const handleAddToCart = () => {
     addToCart({
-      id: `${name}-${selectedOption}`,
+      id: `${categoryId || name}-${selectedOption}`,
       name,
       config: selectedOption,
-      price: priceRange,
+      price: catalog.priceRange,
+      quantity,
+      notes: notes.trim() || undefined,
+      categoryId: categoryId || undefined,
     })
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
@@ -82,9 +127,9 @@ export default function ServiceDetailScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* Hero Image */}
         <View style={styles.heroContainer}>
-          <Image source={{ uri: image }} style={styles.heroImage} resizeMode="cover" />
+          <Image source={{ uri: image }} style={styles.heroImage} resizeMode="cover" alt={name} />
           <View style={styles.heroOverlay} />
-          <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Pressable style={styles.backBtn} onPress={() => router.back()} accessibilityLabel="Go back">
             <Text style={styles.backText}>←</Text>
           </Pressable>
         </View>
@@ -97,10 +142,43 @@ export default function ServiceDetailScreen() {
           {/* Description */}
           <Text style={styles.description}>{description}</Text>
 
+          {/* Trust badges */}
+          <View style={styles.trustRow}>
+            {TRUST_BADGES.map(b => (
+              <View key={b.label} style={styles.trustBadge}>
+                <Text style={styles.trustIcon}>{b.icon}</Text>
+                <Text style={styles.trustLabel}>{b.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Recent Work */}
+          {recentWork.length > 0 && (
+            <View style={styles.section}>
+              <SectionHeader label="FROM OUR PROFESSIONALS" title="Recent Work" />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.recentWorkScroll}
+              >
+                {recentWork.map(item => (
+                  <InspirationCard
+                    key={item.id}
+                    title={item.title}
+                    imageUri={item.coverImageUrl}
+                    width={150}
+                    height={190}
+                    onPress={() => router.push('InspirationDetail', { id: item.id })}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {/* What's Included */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>What's Included</Text>
-            {includes.map((item, i) => (
+            {catalog.includes.map((item, i) => (
               <View key={i} style={styles.bulletRow}>
                 <Text style={styles.bullet}>•</Text>
                 <Text style={styles.bulletText}>{item}</Text>
@@ -112,7 +190,7 @@ export default function ServiceDetailScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Options</Text>
             <View style={styles.chipRow}>
-              {options.map(opt => (
+              {catalog.options.map(opt => (
                 <Chip
                   key={opt}
                   label={opt}
@@ -123,10 +201,50 @@ export default function ServiceDetailScreen() {
             </View>
           </View>
 
-          {/* Price */}
-          <View style={styles.priceSection}>
-            <Text style={styles.priceLabel}>Estimated Price Range</Text>
-            <Text style={styles.priceValue}>{priceRange}</Text>
+          {/* Quantity */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quantity / Rooms</Text>
+            <View style={styles.stepperRow}>
+              <Pressable
+                style={styles.stepperBtn}
+                onPress={() => setQuantity(q => Math.max(1, q - 1))}
+                accessibilityLabel="Decrease quantity"
+              >
+                <Text style={styles.stepperBtnText}>−</Text>
+              </Pressable>
+              <Text style={styles.stepperValue}>{quantity}</Text>
+              <Pressable
+                style={styles.stepperBtn}
+                onPress={() => setQuantity(q => Math.min(20, q + 1))}
+                accessibilityLabel="Increase quantity"
+              >
+                <Text style={styles.stepperBtnText}>+</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Notes */}
+          <View style={styles.section}>
+            <InputField
+              label="Notes for the professional"
+              placeholder="Any specific requirements, size, or details..."
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
+          {/* Price + Timeline */}
+          <View style={styles.statsRow}>
+            <View style={styles.priceSection}>
+              <Text style={styles.priceLabel}>Estimated Price Range</Text>
+              <Text style={styles.priceValue}>{catalog.priceRange}</Text>
+            </View>
+            <View style={styles.priceSection}>
+              <Text style={styles.priceLabel}>Estimated Timeline</Text>
+              <Text style={styles.priceValue}>{catalog.timeline}</Text>
+            </View>
           </View>
 
           {/* Add to Cart */}
@@ -144,6 +262,14 @@ export default function ServiceDetailScreen() {
           <Text style={styles.disclaimer}>
             Price is an estimate. Final quotation will be shared after a site visit.
           </Text>
+
+          {/* FAQ */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
+            {FAQS.map(faq => (
+              <FAQItem key={faq.question} question={faq.question} answer={faq.answer} />
+            ))}
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -246,7 +372,67 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
+  stepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  stepperBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+  },
+  stepperBtnText: {
+    fontSize: 18,
+    fontFamily: fonts.body,
+    color: colors.darkText,
+    fontWeight: '600',
+  },
+  stepperValue: {
+    fontSize: fontSize.h3,
+    fontFamily: fonts.heading,
+    color: colors.darkText,
+    fontWeight: '700',
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  trustRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  trustBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.cardBg,
+    borderRadius: radii.round,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+  },
+  trustIcon: {
+    fontSize: 14,
+  },
+  trustLabel: {
+    fontSize: fontSize.caption,
+    fontFamily: fonts.body,
+    color: colors.darkText,
+    fontWeight: '600',
+  },
+  recentWorkScroll: {
+    gap: spacing.sm,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
   priceSection: {
+    flex: 1,
     backgroundColor: colors.cardBg,
     padding: spacing.lg,
     gap: spacing.xs,

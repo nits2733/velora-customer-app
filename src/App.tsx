@@ -2,12 +2,13 @@ import React, { useState } from 'react'
 import { View, StyleSheet } from 'react-native'
 import { RouterProvider, useRouter } from './navigation/router'
 import { CartProvider } from './context/CartContext'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import BottomNav from './components/BottomNav'
 
 // Main screens
 import HomeScreen from './screens/HomeScreen'
 import ExploreScreen from './screens/ExploreScreen'
+import InspirationDetailScreen from './screens/InspirationDetailScreen'
 import ServicesScreen from './screens/ServicesScreen'
 import ServiceDetailScreen from './screens/ServiceDetailScreen'
 import CartScreen from './screens/CartScreen'
@@ -15,6 +16,9 @@ import CheckoutScreen from './screens/CheckoutScreen'
 import ProjectsScreen from './screens/ProjectsScreen'
 import ProjectDetailScreen from './screens/ProjectDetailScreen'
 import ProfileScreen from './screens/ProfileScreen'
+import LoginScreen from './screens/LoginScreen'
+import RegisterScreen from './screens/RegisterScreen'
+import VerifyOtpScreen from './screens/VerifyOtpScreen'
 
 // Start Project flow
 import Step1 from './screens/StartProject/Step1'
@@ -35,23 +39,39 @@ import PrivacyScreen from './screens/PrivacyScreen'
 import DeleteAccountScreen from './screens/DeleteAccountScreen'
 
 const TAB_SCREENS = ['Home', 'Explore', 'Services', 'Projects']
+const NAV_BAR_SCREENS = [
+  ...TAB_SCREENS,
+  'Profile',
+  'MyQuotations',
+  'QuotationDetail',
+  'CostCalculator',
+  'Locations',
+  'Support',
+  'Privacy',
+  'Terms',
+  'DeleteAccount',
+]
 type Tab = 'Home' | 'Explore' | 'Services' | 'Projects'
 
 function AppContent() {
   const router = useRouter()
+  const auth = useAuth()
   const [hamburgerVisible, setHamburgerVisible] = useState(false)
   const currentScreen = router.currentRoute.name
 
   const isTabScreen = TAB_SCREENS.includes(currentScreen)
+  const showNavBar = NAV_BAR_SCREENS.includes(currentScreen)
 
   const renderScreen = () => {
     switch (currentScreen) {
       case 'Home':
         return <HomeScreen onHamburger={() => setHamburgerVisible(true)} />
       case 'Explore':
-        return <ExploreScreen />
+        return <ExploreScreen onHamburger={() => setHamburgerVisible(true)} />
+      case 'InspirationDetail':
+        return <InspirationDetailScreen />
       case 'Services':
-        return <ServicesScreen />
+        return <ServicesScreen onHamburger={() => setHamburgerVisible(true)} />
       case 'ServiceDetail':
         return <ServiceDetailScreen />
       case 'Cart':
@@ -59,11 +79,18 @@ function AppContent() {
       case 'Checkout':
         return <CheckoutScreen />
       case 'Projects':
-        return <ProjectsScreen />
+        return <ProjectsScreen onHamburger={() => setHamburgerVisible(true)} />
       case 'ProjectDetail':
         return <ProjectDetailScreen />
       case 'Profile':
-        return <ProfileScreen />
+        if (auth.loading) return null
+        return auth.isAuthenticated ? <ProfileScreen /> : <LoginScreen />
+      case 'Login':
+        return <LoginScreen />
+      case 'Register':
+        return <RegisterScreen />
+      case 'VerifyOtp':
+        return <VerifyOtpScreen />
       case 'StartProject':
         return <Step1 />
       case 'StartProject_Step2':
@@ -72,8 +99,6 @@ function AppContent() {
         return <Step3 />
       case 'StartProject_Review':
         return <ReviewRequest />
-      case 'StartProject_Confirmation':
-        return <Confirmation />
       case 'Confirmation':
         return <Confirmation />
       case 'WorkMap':
@@ -99,14 +124,14 @@ function AppContent() {
     }
   }
 
-  const activeTab: Tab = isTabScreen ? (currentScreen as Tab) : 'Home'
+  const activeTab: Tab | null = isTabScreen ? (currentScreen as Tab) : null
 
   return (
     <View style={styles.phone}>
       <View style={styles.screen}>
         {renderScreen()}
       </View>
-      {isTabScreen && (
+      {showNavBar && (
         <BottomNav
           activeTab={activeTab}
           onTabPress={(tab) => {
@@ -136,6 +161,7 @@ export default function App() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    height: '100%' as any,
     backgroundColor: '#1a1a1a',
     alignItems: 'center',
     justifyContent: 'center',

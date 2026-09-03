@@ -99,6 +99,7 @@ export type UserProfileResponse = {
   email: string
   fullName: string
   phone: string
+  avatarUrl?: string
   role: UserRole
   createdAt: string
   professionalProfile?: ProfessionalProfileResponse
@@ -107,6 +108,7 @@ export type UserProfileResponse = {
 export type UpdateProfileRequest = {
   fullName?: string
   phone?: string
+  avatarUrl?: string
   bio?: string
   yearsExperience?: number
   specialization?: string
@@ -294,6 +296,12 @@ export type ProfessionalMatchResponse = {
 }
 
 // ─── Media ─────────────────────────────────────────────
+
+export type UploadPurpose = 'PORTFOLIO_COVER' | 'AVATAR' | 'BOOKING_INSPIRATION'
+
+export type UploadResponse = {
+  url: string
+}
 
 export type MediaUploadResponse = {
   secureUrl: string

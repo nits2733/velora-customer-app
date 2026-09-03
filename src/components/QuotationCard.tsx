@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
-import { colors, fonts, fontSize, radii, spacing } from '../theme/tokens'
+import { colors, fonts, fontSize, radii, spacing, statusColors } from '../theme/tokens'
 
 type Props = {
   id: string
@@ -11,14 +11,14 @@ type Props = {
   onPress?: () => void
 }
 
-const statusColors: Record<string, { bg: string; text: string }> = {
-  Pending: { bg: '#fef9c3', text: '#854d0e' },
-  Approved: { bg: '#dcfce7', text: '#15803d' },
-  Rejected: { bg: '#fee2e2', text: '#b91c1c' },
+const STATUS_KEY: Record<Props['status'], keyof typeof statusColors> = {
+  Pending: 'pending',
+  Approved: 'approved',
+  Rejected: 'rejected',
 }
 
 export default function QuotationCard({ id, services, amount, status, date, onPress }: Props) {
-  const sc = statusColors[status] || statusColors.Pending
+  const sc = statusColors[STATUS_KEY[status]]
   return (
     <Pressable onPress={onPress} style={styles.card}>
       <View style={styles.row}>

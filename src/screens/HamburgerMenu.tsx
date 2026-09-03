@@ -8,8 +8,10 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native'
-import { colors, fonts, fontSize, spacing, radii } from '../theme/tokens'
+import { colors, fonts, fontSize, spacing } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
+import { useAuth } from '../context/AuthContext'
+import ConfirmModal from '../components/ConfirmModal'
 
 type Props = {
   visible: boolean
@@ -24,6 +26,7 @@ type MenuItem = {
 
 export default function HamburgerMenu({ visible, onClose }: Props) {
   const router = useRouter()
+  const auth = useAuth()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const menuItems: MenuItem[] = [
@@ -75,19 +78,24 @@ export default function HamburgerMenu({ visible, onClose }: Props) {
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.logo}>Velora</Text>
-            <Pressable onPress={onClose} style={styles.closeBtn}>
+            <Pressable onPress={onClose} style={styles.closeBtn} accessibilityLabel="Close menu">
               <Text style={styles.closeIcon}>✕</Text>
             </Pressable>
           </View>
 
           {/* User info */}
-          <View style={styles.userRow}>
-            <Image source={{ uri: '/assets/4af4b.png' }} style={styles.avatar} />
+          <Pressable
+            style={styles.userRow}
+            onPress={() => { router.push('Profile'); onClose() }}
+          >
+            <Image source={{ uri: auth.avatarUrl || '/assets/4af4b.png' }} style={styles.avatar} alt={auth.user?.fullName || 'Guest'} />
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>Rahul Mehta</Text>
-              <Text style={styles.userEmail}>rahul.mehta@gmail.com</Text>
+              <Text style={styles.userName}>{auth.user?.fullName || 'Guest'}</Text>
+              <Text style={styles.userEmail}>
+                {auth.user?.email || 'Log in to view your profile'}
+              </Text>
             </View>
-          </View>
+          </Pressable>
 
           <View style={styles.divider} />
 
@@ -107,61 +115,54 @@ export default function HamburgerMenu({ visible, onClose }: Props) {
 
             <View style={styles.divider} />
 
-            {/* Logout */}
-            <Pressable
-              onPress={() => setShowLogoutModal(true)}
-              style={({ pressed }: { pressed: boolean }) => [styles.menuItem, pressed && styles.menuItemPressed]}
-            >
-              <Text style={styles.menuIcon}>🚪</Text>
-              <Text style={[styles.menuLabel, styles.logoutLabel]}>Logout</Text>
-            </Pressable>
+            {auth.isAuthenticated ? (
+              <>
+                {/* Logout */}
+                <Pressable
+                  onPress={() => setShowLogoutModal(true)}
+                  style={({ pressed }: { pressed: boolean }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                >
+                  <Text style={styles.menuIcon}>🚪</Text>
+                  <Text style={[styles.menuLabel, styles.logoutLabel]}>Logout</Text>
+                </Pressable>
 
-            {/* Delete Account */}
-            <Pressable
-              onPress={() => { router.push('DeleteAccount'); onClose() }}
-              style={({ pressed }: { pressed: boolean }) => [styles.menuItem, pressed && styles.menuItemPressed]}
-            >
-              <Text style={styles.menuIcon}>🗑️</Text>
-              <Text style={[styles.menuLabel, styles.deleteLabel]}>Delete Account</Text>
-            </Pressable>
+                {/* Delete Account */}
+                <Pressable
+                  onPress={() => { router.push('DeleteAccount'); onClose() }}
+                  style={({ pressed }: { pressed: boolean }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                >
+                  <Text style={styles.menuIcon}>🗑️</Text>
+                  <Text style={[styles.menuLabel, styles.deleteLabel]}>Delete Account</Text>
+                </Pressable>
+              </>
+            ) : (
+              <Pressable
+                onPress={() => { router.push('Login'); onClose() }}
+                style={({ pressed }: { pressed: boolean }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+              >
+                <Text style={styles.menuIcon}>🔑</Text>
+                <Text style={styles.menuLabel}>Log In</Text>
+              </Pressable>
+            )}
           </ScrollView>
         </View>
       </View>
 
       {/* Logout confirm modal */}
-      <Modal
+      <ConfirmModal
         visible={showLogoutModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowLogoutModal(false)}
-      >
-        <View style={styles.confirmOverlay}>
-          <View style={styles.confirmBox}>
-            <Text style={styles.confirmTitle}>Log out?</Text>
-            <Text style={styles.confirmText}>
-              You will be returned to the login screen.
-            </Text>
-            <View style={styles.confirmButtons}>
-              <Pressable
-                onPress={() => setShowLogoutModal(false)}
-                style={styles.confirmCancel}
-              >
-                <Text style={styles.confirmCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setShowLogoutModal(false)
-                  onClose()
-                  router.replace('Home')
-                }}
-                style={styles.confirmLogout}
-              >
-                <Text style={styles.confirmLogoutText}>Log Out</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        title="Log out?"
+        message="You will be returned to the login screen."
+        confirmLabel="Log Out"
+        danger
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={async () => {
+          setShowLogoutModal(false)
+          onClose()
+          await auth.logout()
+          router.replace('Home')
+        }}
+      />
     </Modal>
   )
 }
@@ -273,65 +274,6 @@ const styles = StyleSheet.create({
     color: colors.mutedText,
   },
   deleteLabel: {
-    color: '#ef4444',
-  },
-  confirmOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  confirmBox: {
-    backgroundColor: colors.white,
-    borderRadius: radii.lg,
-    padding: spacing.xl,
-    width: '100%',
-    maxWidth: 320,
-    gap: spacing.md,
-  },
-  confirmTitle: {
-    fontSize: fontSize.h3,
-    fontFamily: fonts.heading,
-    color: colors.darkText,
-    fontWeight: '700',
-  },
-  confirmText: {
-    fontSize: fontSize.body,
-    fontFamily: fonts.body,
-    color: colors.mutedText,
-    lineHeight: 22,
-  },
-  confirmButtons: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  confirmCancel: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    borderRadius: radii.sm,
-  },
-  confirmCancelText: {
-    fontSize: fontSize.body,
-    fontFamily: fonts.body,
-    color: colors.darkText,
-    fontWeight: '500',
-  },
-  confirmLogout: {
-    flex: 1,
-    backgroundColor: colors.darkText,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    borderRadius: radii.sm,
-  },
-  confirmLogoutText: {
-    fontSize: fontSize.body,
-    fontFamily: fonts.body,
-    color: colors.white,
-    fontWeight: '600',
+    color: colors.error,
   },
 })

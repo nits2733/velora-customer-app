@@ -36,6 +36,8 @@ export default function CartScreen() {
                   name={item.name}
                   config={item.config}
                   price={item.price}
+                  quantity={item.quantity}
+                  notes={item.notes}
                   onRemove={() => removeFromCart(item.id)}
                 />
               ))}

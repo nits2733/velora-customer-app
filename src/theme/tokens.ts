@@ -24,6 +24,15 @@ export const colors = {
   darkOverlay: 'rgba(0,0,0,0.6)',
 }
 
+// Semantic status badge colors — single source of truth for
+// pending/approved/rejected style pill backgrounds+text used across
+// quotations, bookings, work locations, and project status badges.
+export const statusColors = {
+  pending: { bg: '#fef9c3', text: '#854d0e' },
+  approved: { bg: '#dcfce7', text: '#15803d' },
+  rejected: { bg: '#fee2e2', text: '#b91c1c' },
+}
+
 export const fonts = {
   heading: 'Playfair Display, Georgia, serif',
   body: 'Inter, system-ui, sans-serif',

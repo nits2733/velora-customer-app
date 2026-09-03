@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
 import AppHeader from '../components/AppHeader'
-import { colors, fonts, fontSize, spacing, radii, shadows } from '../theme/tokens'
+import { colors, fonts, fontSize, spacing, radii, shadows, statusColors } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 
 const areas = [
@@ -131,9 +131,9 @@ const styles = StyleSheet.create({
   activeTag: {
     fontSize: fontSize.caption,
     fontFamily: fonts.body,
-    color: '#15803d',
+    color: statusColors.approved.text,
     fontWeight: '600',
-    backgroundColor: '#dcfce7',
+    backgroundColor: statusColors.approved.bg,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: radii.round,

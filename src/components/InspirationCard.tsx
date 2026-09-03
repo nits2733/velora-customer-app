@@ -1,6 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native'
 import { colors, fonts, fontSize, radii } from '../theme/tokens'
+
+const FALLBACK_IMAGE = '/assets/ab679.png'
 
 type Props = {
   title: string
@@ -11,9 +13,15 @@ type Props = {
 }
 
 export default function InspirationCard({ title, imageUri, onPress, width = 160, height = 200 }: Props) {
+  const [failed, setFailed] = useState(false)
   return (
     <Pressable onPress={onPress} style={[styles.card, { width, height }]}>
-      <Image source={{ uri: imageUri }} style={styles.image} />
+      <Image
+        source={{ uri: failed ? FALLBACK_IMAGE : imageUri }}
+        style={styles.image}
+        onError={() => setFailed(true)}
+        alt={title}
+      />
       <View style={styles.overlay}>
         <Text style={styles.title}>{title}</Text>
       </View>
