@@ -1,69 +1,98 @@
-# velora-app
+<div align="center">
 
-Interior services app for Velora. React Native (web) + Vite.
+# 🏡 Velora Frontend
 
-## Setup
+**Interior services, one app** — from a full home transformation to a single service booking.
 
-```
+![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white)
+![react--native--web](https://img.shields.io/badge/react--native--web-0.19-61dafb?logo=react&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind_CSS-v4-06b6d4?logo=tailwindcss&logoColor=white)
+![Auth](https://img.shields.io/badge/Auth-JWT_%2B_2FA-6e40c9?logo=jsonwebtokens&logoColor=white)
+![status](https://img.shields.io/badge/status-active_dev-success)
+
+[Quick Start](#-quick-start) • [Stack](#-stack) • [Project Layout](#-project-layout) • [Backend Integration](#-backend-integration) • [What's Real](#-whats-wired-to-real-data) • [Known Gaps](#-known-gaps)
+
+</div>
+
+---
+
+## 📖 Overview
+
+Velora is a React Native (web) app for booking interior design and home services. Customers can browse real professional portfolios, book a **Full Home Project** or an **Individual Service** (painting, plumbing, electrical, carpentry, false ceiling, modular kitchen), track bookings through to completion, and manage quotations — all backed by a real Spring Boot API with JWT + 2FA authentication.
+
+The app runs as a single mobile-shaped viewport (`375px` wide) rendered via `react-native-web`, using a custom in-memory router that's synced to the URL so a page refresh lands you back where you were.
+
+---
+
+## 🚀 Quick Start
+
+```bash
 pnpm install
-```
-
-## Dev
-
-```
 pnpm dev
 ```
 
-Runs on `http://localhost:8443` (or whatever `$PORT` is set to).
+Runs on `http://localhost:8443` (or `$PORT`). The dev server proxies `/api/*` to the backend — see [Backend Integration](#-backend-integration).
 
-The dev server proxies `/api/*` requests to the backend (see **Backend** below), so the frontend talks to it same-origin — no CORS issues in the browser.
-
-## Build
-
-```
-pnpm build
+```bash
+pnpm build   # → dist/
 ```
 
-Output goes to `dist/`.
+---
 
-## Stack
+## 🧱 Stack
 
-- React 19 + react-native-web
-- Vite 8
-- TypeScript 5.7
-- Tailwind CSS v4
+| | |
+|---|---|
+| **UI** | React 19 + `react-native-web` |
+| **Bundler** | Vite 8 |
+| **Language** | TypeScript 5.7 |
+| **Styling** | Tailwind CSS v4 |
+| **Routing** | Custom in-memory router, URL-synced (`src/navigation/router.tsx`) |
+| **Auth** | JWT access + refresh tokens, 2FA email OTP |
 
-## Project layout
+---
+
+## 📂 Project Layout
 
 ```
 src/
-  api/          API client + typed controllers (auth, bookings, quotations, favorites, uploads, etc.)
-  components/   Reusable UI (buttons, cards, inputs, nav, ConfirmModal)
-  context/      React contexts (auth, cart)
-  navigation/   Custom router (URL-synced, so refresh keeps the current screen)
-  screens/      All app screens, incl. Login/Register/VerifyOtp and the StartProject wizard
-  theme/        Design tokens
+  api/          Typed API client + controllers (auth, bookings, quotations, favorites, uploads, ...)
+  components/   Reusable UI — buttons, cards, inputs, nav, ConfirmModal
+  context/      React contexts — auth, cart
+  navigation/   Custom router
+  screens/      Every screen, incl. Login/Register/VerifyOtp and the StartProject wizard
+  theme/        Design tokens (colors, type scale, spacing, status colors)
 ```
 
-## Backend
+---
 
-The app expects the Velora backend (Spring Boot) running at `http://localhost:8080` by default. `vite.config.ts`'s `server.proxy` forwards it — override the target with the `BACKEND_URL` env var if it runs elsewhere.
+## 🔌 Backend Integration
 
-The backend's `CORS_ALLOWED_ORIGINS` env var must include this app's origin (`http://localhost:8443` by default) for direct (non-proxied) requests and for any deployed frontend origin.
+The app expects the Velora backend (Spring Boot) at `http://localhost:8080` by default. `vite.config.ts`'s `server.proxy` forwards `/api/*` there — override with the `BACKEND_URL` env var if it runs elsewhere.
 
-### Auth
+> **Backend setup:** the backend's `CORS_ALLOWED_ORIGINS` env var must include this app's origin (`http://localhost:8443` by default) — otherwise the browser blocks auth and other mutating requests with a CORS error, even though `curl` (no `Origin` header) would appear to work fine.
 
-Real JWT auth end to end: register, login (dispatches a 2FA email OTP), OTP verification, refresh-token session restore on reload, and logout. The access token lives in memory only; the refresh token persists to `localStorage` under `velora_refresh_token`. `src/api/client.ts` auto-refreshes on a 401 and retries once.
+### Auth flow
 
-### What's wired to real data
+Register or log in → login dispatches a 2FA email OTP → verify the OTP → real JWT pair issued. The access token lives in memory only; the refresh token persists to `localStorage` (`velora_refresh_token`) so a reload silently restores the session. A 401 triggers one automatic refresh-and-retry (`src/api/client.ts`).
 
-- **Explore / Services** — real categories and portfolio search (`categoriesApi`, `portfolioApi`)
-- **Home / Projects** — real bookings (`bookingsApi`), grouped by status (Active/Upcoming/Complete)
-- **StartProject wizard & Checkout** — actually create bookings (`POST /api/bookings`) instead of a fake success screen
-- **Quotations** (`MyQuotationsScreen`, `QuotationDetailScreen`) — aggregated per-booking (no list-all-quotations endpoint exists), real accept/reject actions
-- **Profile** — real user data, avatar upload (`POST /api/uploads?purpose=AVATAR` → Cloudinary, saved via `PUT /api/users/profile`), real Projects/Quotations/Saved counts (`favoritesApi`)
+---
 
-### Known gaps
+## ✅ What's Wired to Real Data
 
-- `DeleteAccountScreen` is a no-op (no backend delete-account endpoint) — shows a client-side confirmation flow only, does not call the API.
-- Sending a quotation and marking a booking complete are professional/admin-only backend actions — there's no professional-facing UI in this app, so those paths are code-reviewed but not screenshot-verified against live data.
+| Area | Backed by |
+|---|---|
+| Explore / Services | `categoriesApi`, `portfolioApi` — real categories + portfolio search |
+| Home / Projects | `bookingsApi` — real bookings, grouped Active / Upcoming / Complete |
+| StartProject wizard & Checkout | `POST /api/bookings` — creates a real booking, not a fake success screen |
+| My Quotations / Quotation Detail | `quotationsApi`, aggregated per-booking (no list-all endpoint exists); real accept/reject |
+| Profile | Real user data, avatar upload (`/api/uploads` → Cloudinary), real Projects/Quotations/Saved counts (`favoritesApi`) |
+
+---
+
+## ⚠️ Known Gaps
+
+- **Delete Account** is a client-side no-op — no backend delete-account endpoint exists, so it shows a confirmation flow but never calls the API.
+- **Sending a quotation / marking a booking complete** are professional/admin-only backend actions. This app has no professional-facing UI, so those paths are code-reviewed but not verified against live data end-to-end.
