@@ -110,7 +110,14 @@ async function doRequest<T>(path: string, options: RequestOptions, allowRefresh:
 
   if (!res.ok) {
     const text = await res.text().catch(() => '')
-    throw new ApiError(res.status, text || res.statusText)
+    let message = text || res.statusText
+    try {
+      const parsed = JSON.parse(text)
+      if (parsed && typeof parsed.message === 'string') message = parsed.message
+    } catch {
+      // Body wasn't JSON — fall back to the raw text/status already set above.
+    }
+    throw new ApiError(res.status, message)
   }
 
   const contentType = res.headers.get('content-type')

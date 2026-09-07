@@ -26,6 +26,10 @@ export default function LoginScreen() {
       await authApi.login({ email: email.trim(), password })
       router.push('VerifyOtp', { email: email.trim() })
     } catch (e) {
+      if (e instanceof ApiError && e.status === 401 && /not verified/i.test(e.message)) {
+        router.push('VerifyOtp', { email: email.trim(), mode: 'register' })
+        return
+      }
       setError(e instanceof ApiError && e.status === 401
         ? 'Incorrect email or password.'
         : 'Something went wrong. Please try again.')

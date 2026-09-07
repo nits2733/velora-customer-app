@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { colors, fonts, fontSize, spacing } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
-import { useAuth } from '../context/AuthContext'
 import InputField from '../components/InputField'
 import PrimaryButton from '../components/PrimaryButton'
 import { authApi } from '../api/auth'
@@ -10,7 +9,6 @@ import { ApiError } from '../api/client'
 
 export default function RegisterScreen() {
   const router = useRouter()
-  const auth = useAuth()
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -36,15 +34,14 @@ export default function RegisterScreen() {
     setError('')
     setSubmitting(true)
     try {
-      const res = await authApi.register({
+      await authApi.register({
         fullName: fullName.trim(),
         email: email.trim(),
         password,
         phone: phone.trim() || undefined,
         role: 'CUSTOMER',
       })
-      auth.login(res.user, res.accessToken, res.refreshToken)
-      router.replace('Home')
+      router.push('VerifyOtp', { email: email.trim(), mode: 'register' })
     } catch (e) {
       setError(e instanceof ApiError && e.status === 409
         ? 'An account with this email already exists.'

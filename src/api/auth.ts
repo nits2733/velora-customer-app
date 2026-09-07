@@ -17,7 +17,13 @@ import type {
 
 export const authApi = {
   register: (data: RegisterRequest) =>
-    api.post<AuthResponse>('/api/auth/register', data),
+    api.post<OtpResponse>('/api/auth/register', data),
+
+  verifyEmail: (data: VerifyOtpRequest) =>
+    api.post<AuthResponse>('/api/auth/verify-email', data),
+
+  resendVerificationOtp: (data: ForgotPasswordRequest) =>
+    api.post<MessageResponse>('/api/auth/resend-verification-otp', data),
 
   login: (data: LoginRequest) =>
     api.post<OtpResponse>('/api/auth/login', data),
