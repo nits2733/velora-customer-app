@@ -9,6 +9,8 @@ import { ApiError } from '../api/client'
 
 export default function RegisterScreen() {
   const router = useRouter()
+  const returnTo = router.getParam('returnTo')
+  const returnParams = router.getParam('returnParams')
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -41,7 +43,7 @@ export default function RegisterScreen() {
         phone: phone.trim() || undefined,
         role: 'CUSTOMER',
       })
-      router.push('VerifyOtp', { email: email.trim(), mode: 'register' })
+      router.push('VerifyOtp', { email: email.trim(), mode: 'register', returnTo, returnParams })
     } catch (e) {
       setError(e instanceof ApiError && e.status === 409
         ? 'An account with this email already exists.'
@@ -107,7 +109,7 @@ export default function RegisterScreen() {
           disabled={submitting}
         />
 
-        <Pressable onPress={() => router.replace('Login')}>
+        <Pressable onPress={() => router.replace('Login', { returnTo, returnParams })}>
           <Text style={styles.loginLink}>Already have an account? Log In</Text>
         </Pressable>
       </View>

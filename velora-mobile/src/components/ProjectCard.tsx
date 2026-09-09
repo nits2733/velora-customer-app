@@ -1,5 +1,6 @@
 import React from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
+import AnimatedPressable from './AnimatedPressable'
 import { colors, fonts, fontSize, radii, spacing, shadows, statusColors } from '../theme/tokens'
 
 type Props = {
@@ -12,7 +13,7 @@ type Props = {
 
 export default function ProjectCard({ title, status, progress, professional, onPress }: Props) {
   return (
-    <Pressable onPress={onPress} style={styles.card}>
+    <AnimatedPressable onPress={onPress} style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
         <View style={[styles.badge, status === 'Active' && styles.activeBadge]}>
@@ -28,7 +29,7 @@ export default function ProjectCard({ title, status, progress, professional, onP
           <Text style={styles.progressText}>{progress}% complete</Text>
         </View>
       )}
-    </Pressable>
+    </AnimatedPressable>
   )
 }
 

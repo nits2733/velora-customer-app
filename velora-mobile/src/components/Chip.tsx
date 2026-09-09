@@ -1,5 +1,6 @@
 import React from 'react'
-import { Pressable, Text, StyleSheet } from 'react-native'
+import { Text, StyleSheet } from 'react-native'
+import AnimatedPressable from './AnimatedPressable'
 import { colors, fonts, fontSize, radii, spacing } from '../theme/tokens'
 
 type Props = {
@@ -10,12 +11,12 @@ type Props = {
 
 export default function Chip({ label, selected, onPress }: Props) {
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
       style={[styles.chip, selected && styles.selected]}
     >
       <Text style={[styles.label, selected && styles.selectedLabel]}>{label}</Text>
-    </Pressable>
+    </AnimatedPressable>
   )
 }
 

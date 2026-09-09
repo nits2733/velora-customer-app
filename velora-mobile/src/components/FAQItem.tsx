@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import { Animated, Text, StyleSheet } from 'react-native'
+import AnimatedPressable from './AnimatedPressable'
 import { colors, fonts, fontSize, spacing } from '../theme/tokens'
 
 type Props = {
@@ -9,14 +10,27 @@ type Props = {
 
 export default function FAQItem({ question, answer }: Props) {
   const [open, setOpen] = useState(false)
+  const rotation = useRef(new Animated.Value(0)).current
+  const answerOpacity = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    Animated.timing(rotation, { toValue: open ? 1 : 0, duration: 200, useNativeDriver: true }).start()
+    if (open) {
+      answerOpacity.setValue(0)
+      Animated.timing(answerOpacity, { toValue: 1, duration: 220, useNativeDriver: true }).start()
+    }
+  }, [open, rotation, answerOpacity])
+
+  const rotate = rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '135deg'] })
+
   return (
-    <View style={styles.container}>
-      <Pressable onPress={() => setOpen(v => !v)} style={styles.row}>
+    <Animated.View style={styles.container}>
+      <AnimatedPressable onPress={() => setOpen(v => !v)} style={styles.row}>
         <Text style={styles.question}>{question}</Text>
-        <Text style={styles.chevron}>{open ? '−' : '+'}</Text>
-      </Pressable>
-      {open && <Text style={styles.answer}>{answer}</Text>}
-    </View>
+        <Animated.Text style={[styles.chevron, { transform: [{ rotate }] }]}>+</Animated.Text>
+      </AnimatedPressable>
+      {open && <Animated.Text style={[styles.answer, { opacity: answerOpacity }]}>{answer}</Animated.Text>}
+    </Animated.View>
   )
 }
 

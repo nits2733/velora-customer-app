@@ -14,6 +14,8 @@ export default function VerifyOtpScreen() {
 
   const email = String(router.getParam('email') || '')
   const mode: 'login' | 'register' = router.getParam('mode') === 'register' ? 'register' : 'login'
+  const returnTo = router.getParam('returnTo')
+  const returnParams = router.getParam('returnParams')
 
   const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
@@ -34,7 +36,7 @@ export default function VerifyOtpScreen() {
         ? await authApi.verifyEmail({ email, otp: otp.trim() })
         : await authApi.verifyLoginOtp({ email, otp: otp.trim() })
       auth.login(res.user, res.accessToken, res.refreshToken)
-      router.replace('Home')
+      router.replace(returnTo || 'Home', returnTo ? returnParams : undefined)
     } catch (e) {
       setError(e instanceof ApiError && (e.status === 400 || e.status === 401)
         ? 'Incorrect or expired code.'

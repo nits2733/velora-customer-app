@@ -1,9 +1,9 @@
 import React from 'react'
-import { View, Text, Pressable, Image, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { colors, fonts, fontSize, spacing } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 import { useAuth } from '../context/AuthContext'
-import FALLBACK_AVATAR from '../../assets/images/4af4b.png'
+import Avatar from './Avatar'
 
 type Props = {
   title?: string
@@ -43,7 +43,7 @@ export default function AppHeader({ title, greeting, showBack, onBack, onHamburg
       </View>
       <View style={styles.right}>
         <Pressable style={styles.avatar} accessibilityLabel="Profile" onPress={() => router.push('Profile')}>
-          <Image source={auth.avatarUrl ? { uri: auth.avatarUrl } : FALLBACK_AVATAR} style={styles.avatarImg} alt="Profile avatar" />
+          <Avatar uri={auth.avatarUrl} name={auth.user?.fullName || 'Guest'} size={32} />
         </Pressable>
       </View>
     </View>
@@ -113,10 +113,5 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: colors.border,
-  },
-  avatarImg: {
-    width: 32,
-    height: 32,
   },
 })

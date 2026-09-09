@@ -1,5 +1,5 @@
-import React from 'react'
-import { View, Text, Modal, StyleSheet } from 'react-native'
+import React, { useEffect, useRef } from 'react'
+import { Animated, Text, Modal, StyleSheet } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii, shadows } from '../theme/tokens'
 import PrimaryButton from './PrimaryButton'
 import SecondaryButton from './SecondaryButton'
@@ -25,22 +25,31 @@ export default function ConfirmModal({
   onCancel,
   danger,
 }: Props) {
+  const scale = useRef(new Animated.Value(0.92)).current
+
+  useEffect(() => {
+    if (visible) {
+      scale.setValue(0.92)
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }).start()
+    }
+  }, [visible, scale])
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={styles.overlay}>
-        <View style={styles.box}>
+      <Animated.View style={styles.overlay}>
+        <Animated.View style={[styles.box, { transform: [{ scale }] }]}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
-          <View style={styles.actions}>
+          <Animated.View style={styles.actions}>
             <SecondaryButton label={cancelLabel} onPress={onCancel} style={styles.actionBtn} />
             <PrimaryButton
               label={confirmLabel}
               onPress={onConfirm}
               style={danger ? { ...styles.actionBtn, backgroundColor: colors.error } : styles.actionBtn}
             />
-          </View>
-        </View>
-      </View>
+          </Animated.View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   )
 }

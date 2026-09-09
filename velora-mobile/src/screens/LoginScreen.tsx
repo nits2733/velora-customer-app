@@ -9,6 +9,8 @@ import { ApiError } from '../api/client'
 
 export default function LoginScreen() {
   const router = useRouter()
+  const returnTo = router.getParam('returnTo')
+  const returnParams = router.getParam('returnParams')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,10 +26,10 @@ export default function LoginScreen() {
     setSubmitting(true)
     try {
       await authApi.login({ email: email.trim(), password })
-      router.push('VerifyOtp', { email: email.trim() })
+      router.push('VerifyOtp', { email: email.trim(), returnTo, returnParams })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401 && /not verified/i.test(e.message)) {
-        router.push('VerifyOtp', { email: email.trim(), mode: 'register' })
+        router.push('VerifyOtp', { email: email.trim(), mode: 'register', returnTo, returnParams })
         return
       }
       setError(e instanceof ApiError && e.status === 401
@@ -78,7 +80,7 @@ export default function LoginScreen() {
           We'll send a one-time code to your email to confirm it's you.
         </Text>
 
-        <Pressable onPress={() => router.push('Register')}>
+        <Pressable onPress={() => router.push('Register', { returnTo, returnParams })}>
           <Text style={styles.registerLink}>New here? Create an account</Text>
         </Pressable>
       </View>

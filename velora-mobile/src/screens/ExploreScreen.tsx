@@ -7,13 +7,15 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  ActivityIndicator,
 } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii, fontWeight, shadows } from '../theme/tokens'
 import AppHeader from '../components/AppHeader'
 import Chip from '../components/Chip'
 import SectionHeader from '../components/SectionHeader'
 import EmptyState from '../components/EmptyState'
+import Skeleton from '../components/Skeleton'
+import FadeInUp from '../components/FadeInUp'
+import AnimatedPressable from '../components/AnimatedPressable'
 import { categoriesApi } from '../api/categories'
 import { portfolioApi } from '../api/portfolio'
 import type { CategoryResponse, PortfolioItemSummaryResponse } from '../api/types'
@@ -34,6 +36,14 @@ function formatPrice(n: number): string {
 
 type Props = {
   onHamburger?: () => void
+}
+
+// Falls back to the local placeholder if the remote cover image 404s or
+// otherwise fails to load, instead of leaving a blank box.
+function ProjectThumb({ uri, alt }: { uri: string | null | undefined; alt: string }) {
+  const [failed, setFailed] = useState(false)
+  const source = !uri || failed ? FALLBACK_IMAGE : { uri }
+  return <Image source={source} style={styles.projectImg} alt={alt} onError={() => setFailed(true)} />
 }
 
 export default function ExploreScreen({ onHamburger }: Props) {
@@ -167,8 +177,16 @@ export default function ExploreScreen({ onHamburger }: Props) {
       </View>
 
       {loading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator color={colors.darkText} />
+        <View style={styles.projectGrid}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <View key={i} style={styles.projectCard}>
+              <Skeleton height={130} radius={0} />
+              <View style={styles.projectBody}>
+                <Skeleton height={14} width="90%" />
+                <Skeleton height={10} width="50%" style={{ marginTop: 6 }} />
+              </View>
+            </View>
+          ))}
         </View>
       ) : error ? (
         <View style={styles.stateWrap}>
@@ -186,17 +204,19 @@ export default function ExploreScreen({ onHamburger }: Props) {
         </View>
       ) : (
         <View style={styles.projectGrid}>
-          {items.map((item) => (
-            <Pressable key={item.id} style={styles.projectCard} onPress={() => openInspiration(item.id)}>
-              <Image source={item.coverImageUrl ? { uri: item.coverImageUrl } : FALLBACK_IMAGE} style={styles.projectImg} alt={item.title} />
-              <View style={styles.projectBody}>
-                <Text style={styles.projectTitle} numberOfLines={2}>{item.title}</Text>
-                <View style={styles.projectMeta}>
-                  <Text style={styles.projectCategory}>{item.categoryName}</Text>
-                  {item.priceEstimate > 0 && <Text style={styles.projectPrice}>{formatPrice(item.priceEstimate)}</Text>}
+          {items.map((item, i) => (
+            <FadeInUp key={item.id} delay={i * 40} style={styles.projectCard}>
+              <AnimatedPressable style={styles.projectCardInner} onPress={() => openInspiration(item.id)}>
+                <ProjectThumb uri={item.coverImageUrl} alt={item.title} />
+                <View style={styles.projectBody}>
+                  <Text style={styles.projectTitle} numberOfLines={2}>{item.title}</Text>
+                  <View style={styles.projectMeta}>
+                    <Text style={styles.projectCategory}>{item.categoryName}</Text>
+                    {item.priceEstimate > 0 && <Text style={styles.projectPrice}>{formatPrice(item.priceEstimate)}</Text>}
+                  </View>
                 </View>
-              </View>
-            </Pressable>
+              </AnimatedPressable>
+            </FadeInUp>
           ))}
         </View>
       )}
@@ -232,8 +252,6 @@ export default function ExploreScreen({ onHamburger }: Props) {
     </ScrollView>
   )
 }
-
-const CELL_WIDTH = (375 - 48 - 8) / 2
 
 const styles = StyleSheet.create({
   scroll: {
@@ -298,18 +316,22 @@ const styles = StyleSheet.create({
   projectGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 8,
     paddingHorizontal: spacing.xl,
     marginBottom: spacing.section,
   },
   projectCard: {
-    width: CELL_WIDTH,
+    width: '48%',
     backgroundColor: colors.cardBg,
     borderRadius: radii.md,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
     ...shadows.sm,
+  },
+  projectCardInner: {
+    flex: 1,
   },
   projectImg: {
     width: '100%',

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Image, StyleSheet } from 'react-native'
+import AnimatedPressable from './AnimatedPressable'
 import { colors, fonts, fontSize, radii } from '../theme/tokens'
 import FALLBACK_IMAGE from '../../assets/images/ab679.png'
 
@@ -14,7 +15,7 @@ type Props = {
 export default function InspirationCard({ title, imageUri, onPress, width = 160, height = 200 }: Props) {
   const [failed, setFailed] = useState(false)
   return (
-    <Pressable onPress={onPress} style={[styles.card, { width, height }]}>
+    <AnimatedPressable onPress={onPress} style={[styles.card, { width, height }]}>
       <Image
         source={failed ? FALLBACK_IMAGE : { uri: imageUri }}
         style={styles.image}
@@ -24,7 +25,7 @@ export default function InspirationCard({ title, imageUri, onPress, width = 160,
       <View style={styles.overlay}>
         <Text style={styles.title}>{title}</Text>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   )
 }
 

@@ -1,5 +1,6 @@
 import React from 'react'
-import { Pressable, Text, StyleSheet, ViewStyle } from 'react-native'
+import { Text, StyleSheet, ViewStyle } from 'react-native'
+import AnimatedPressable from './AnimatedPressable'
 import { colors, fonts, fontSize, spacing } from '../theme/tokens'
 
 type Props = {
@@ -10,12 +11,12 @@ type Props = {
 
 export default function SecondaryButton({ label, onPress, style }: Props) {
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
       style={({ pressed }: { pressed: boolean }) => [styles.btn, pressed && styles.pressed, style]}
     >
       <Text style={styles.label}>{label}</Text>
-    </Pressable>
+    </AnimatedPressable>
   )
 }
 

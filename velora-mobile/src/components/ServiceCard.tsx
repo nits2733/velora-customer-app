@@ -1,5 +1,6 @@
 import React from 'react'
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Image, StyleSheet } from 'react-native'
+import AnimatedPressable from './AnimatedPressable'
 import { colors, fonts, fontSize, radii, spacing } from '../theme/tokens'
 
 type Props = {
@@ -11,12 +12,12 @@ type Props = {
 
 export default function ServiceCard({ title, imageUri, onPress, width = 140 }: Props) {
   return (
-    <Pressable onPress={onPress} style={[styles.card, { width }]}>
+    <AnimatedPressable onPress={onPress} style={[styles.card, { width }]}>
       <Image source={{ uri: imageUri }} style={[styles.image, { width }]} />
       <View style={styles.info}>
         <Text style={styles.title}>{title}</Text>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   )
 }
 

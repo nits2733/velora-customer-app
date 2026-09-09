@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native'
 import { useRouter } from './navigation/router'
 import { useAuth } from './context/AuthContext'
 import BottomNav from './components/BottomNav'
+import ScreenTransition from './components/ScreenTransition'
 
 // Main screens
 import HomeScreen from './screens/HomeScreen'
@@ -127,7 +128,9 @@ export default function AppContent() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.content}>{renderScreen()}</View>
+      <View style={styles.content}>
+        <ScreenTransition key={currentScreen}>{renderScreen()}</ScreenTransition>
+      </View>
       {showNavBar && (
         <BottomNav
           activeTab={activeTab}

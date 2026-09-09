@@ -58,7 +58,10 @@ export default function ReviewRequest() {
 
   const handleSubmit = async () => {
     if (!auth.isAuthenticated) {
-      router.push('Login')
+      // Carry the whole review-request route (name + all entered fields) so
+      // that after login/OTP verification the user lands back here with
+      // everything intact, instead of being dropped on Home to start over.
+      router.push('Login', { returnTo: 'StartProject_Review', returnParams: router.currentRoute.params })
       return
     }
     setError('')

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { colors, fonts, fontSize, spacing, radii, shadows } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 import { useAuth } from '../context/AuthContext'
 import AppHeader from '../components/AppHeader'
 import ConfirmModal from '../components/ConfirmModal'
+import Avatar from '../components/Avatar'
 import { userApi } from '../api/user'
 import { uploadsApi } from '../api/uploads'
 import { bookingsApi } from '../api/bookings'
@@ -14,7 +15,6 @@ import { favoritesApi } from '../api/favorites'
 import { ApiError } from '../api/client'
 import type { UserProfileResponse } from '../api/types'
 
-const FALLBACK_AVATAR = require('../../assets/images/default-avatar.png')
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
 const settingsItems = [
@@ -135,7 +135,7 @@ export default function ProfileScreen() {
         {/* Profile header card */}
         <View style={styles.profileCard}>
           <Pressable onPress={handlePickAvatar} accessibilityLabel="Change profile photo" style={styles.avatarWrap}>
-            <Image source={profile?.avatarUrl ? { uri: profile.avatarUrl } : FALLBACK_AVATAR} style={styles.avatar} />
+            <Avatar uri={profile?.avatarUrl} name={displayName} size={60} />
             <View style={styles.avatarEditBadge}>
               {uploadingAvatar ? (
                 <ActivityIndicator size="small" color={colors.white} />
@@ -238,12 +238,6 @@ const styles = StyleSheet.create({
     height: 60,
     marginBottom: spacing.xs,
     position: 'relative',
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.border,
   },
   avatarEditBadge: {
     position: 'absolute',

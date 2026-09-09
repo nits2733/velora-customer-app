@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, Image, Pressable, ScrollView, StyleSheet } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii, shadows, fontWeight } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 import { useCart } from '../context/CartContext'
 import AppHeader from '../components/AppHeader'
 import SectionHeader from '../components/SectionHeader'
 import EmptyState from '../components/EmptyState'
+import Skeleton from '../components/Skeleton'
+import FadeInUp from '../components/FadeInUp'
+import Pulse from '../components/Pulse'
+import AnimatedPressable from '../components/AnimatedPressable'
 import InspirationCard from '../components/InspirationCard'
 import FAQItem from '../components/FAQItem'
 import { categoriesApi } from '../api/categories'
@@ -28,8 +32,6 @@ const SERVICE_IMAGES: Record<string, number> = {
   'False Ceiling': ImgFalseCeiling,
   'Modular Kitchen': ImgModularKitchen,
 }
-
-const TILE_W = (375 - 52) / 2
 
 const STATS = [
   { value: '500+', label: 'Projects Delivered' },
@@ -118,15 +120,24 @@ export default function ServicesScreen({ onHamburger }: Props) {
           <View style={s.sectionHeadRow}>
             <SectionHeader title="Individual Services" />
             {cartCount > 0 && (
-              <Pressable style={s.cartBadge} onPress={() => router.push('Cart')}>
-                <Text style={s.cartBadgeTxt}>Cart ({cartCount})</Text>
-              </Pressable>
+              <Pulse trigger={cartCount}>
+                <Pressable style={s.cartBadge} onPress={() => router.push('Cart')}>
+                  <Text style={s.cartBadgeTxt}>Cart ({cartCount})</Text>
+                </Pressable>
+              </Pulse>
             )}
           </View>
 
           {loading ? (
-            <View style={s.loadingWrap}>
-              <ActivityIndicator color={colors.darkText} />
+            <View style={s.grid}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <View key={i} style={s.tile}>
+                  <Skeleton height={130} radius={0} />
+                  <View style={s.tileFooter}>
+                    <Skeleton height={14} width="70%" />
+                  </View>
+                </View>
+              ))}
             </View>
           ) : error ? (
             <EmptyState
@@ -135,25 +146,26 @@ export default function ServicesScreen({ onHamburger }: Props) {
             />
           ) : (
             <View style={s.grid}>
-              {services.map((svc) => {
+              {services.map((svc, i) => {
                 const image = SERVICE_IMAGES[svc.name] || FALLBACK_IMAGE
                 return (
-                  <Pressable
-                    key={svc.id}
-                    style={s.tile}
-                    onPress={() => router.push('ServiceDetail', {
-                      id: svc.id,
-                      name: svc.name,
-                      description: svc.description,
-                      image,
-                    })}
-                  >
-                    <Image source={image} style={s.tileImg} alt={svc.name} />
-                    <View style={s.tileFooter}>
-                      <Text style={s.tileName}>{svc.name}</Text>
-                      <Text style={s.tileArrow}>›</Text>
-                    </View>
-                  </Pressable>
+                  <FadeInUp key={svc.id} delay={i * 40} style={s.tile}>
+                    <AnimatedPressable
+                      style={s.tileInner}
+                      onPress={() => router.push('ServiceDetail', {
+                        id: svc.id,
+                        name: svc.name,
+                        description: svc.description,
+                        image,
+                      })}
+                    >
+                      <Image source={image} style={s.tileImg} alt={svc.name} />
+                      <View style={s.tileFooter}>
+                        <Text style={s.tileName}>{svc.name}</Text>
+                        <Text style={s.tileArrow}>›</Text>
+                      </View>
+                    </AnimatedPressable>
+                  </FadeInUp>
                 )
               })}
             </View>
@@ -214,12 +226,16 @@ export default function ServicesScreen({ onHamburger }: Props) {
 
       {/* Sticky cart button */}
       <View style={s.stickyCart}>
-        <Pressable style={s.cartBtn} onPress={() => router.push('Cart')}>
+        <AnimatedPressable style={s.cartBtn} onPress={() => router.push('Cart')}>
           <Text style={s.cartBtnTxt}>
             {cartCount > 0 ? `View Cart · ${cartCount} ${cartCount === 1 ? 'service' : 'services'}` : 'Service Cart'}
           </Text>
-          {cartCount > 0 && <View style={s.cartDot}><Text style={s.cartDotTxt}>{cartCount}</Text></View>}
-        </Pressable>
+          {cartCount > 0 && (
+            <Pulse trigger={cartCount} style={s.cartDot}>
+              <Text style={s.cartDotTxt}>{cartCount}</Text>
+            </Pulse>
+          )}
+        </AnimatedPressable>
       </View>
     </View>
   )
@@ -268,9 +284,10 @@ const s = StyleSheet.create({
   cartBadge: { backgroundColor: colors.darkText, borderRadius: radii.round, paddingHorizontal: 12, paddingVertical: 4 },
   cartBadgeTxt: { fontFamily: fonts.body, fontSize: fontSize.caption, color: colors.white, fontWeight: fontWeight.semibold },
   loadingWrap: { paddingVertical: spacing.section, alignItems: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  tile: { width: TILE_W, backgroundColor: colors.cardBg2, borderRadius: radii.md, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, ...shadows.sm },
-  tileImg: { width: TILE_W, height: 130, resizeMode: 'cover' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
+  tile: { width: '47%', backgroundColor: colors.cardBg2, borderRadius: radii.md, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, ...shadows.sm },
+  tileInner: { flex: 1 },
+  tileImg: { width: '100%', height: 130, resizeMode: 'cover' },
   tileFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, paddingVertical: 8 },
   tileName: { fontFamily: fonts.body, fontSize: fontSize.label, color: colors.darkText, fontWeight: fontWeight.semibold, letterSpacing: 0.3, flex: 1 },
   tileArrow: { fontFamily: fonts.body, fontSize: 16, color: colors.mutedText },
