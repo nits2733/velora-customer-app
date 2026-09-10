@@ -8,7 +8,6 @@ import ScreenTransition from './components/ScreenTransition'
 // Main screens
 import HomeScreen from './screens/HomeScreen'
 import ExploreScreen from './screens/ExploreScreen'
-import InspirationDetailScreen from './screens/InspirationDetailScreen'
 import ServicesScreen from './screens/ServicesScreen'
 import ServiceDetailScreen from './screens/ServiceDetailScreen'
 import CartScreen from './screens/CartScreen'
@@ -68,8 +67,6 @@ export default function AppContent() {
         return <HomeScreen onHamburger={() => setHamburgerVisible(true)} />
       case 'Explore':
         return <ExploreScreen onHamburger={() => setHamburgerVisible(true)} />
-      case 'InspirationDetail':
-        return <InspirationDetailScreen />
       case 'Services':
         return <ServicesScreen onHamburger={() => setHamburgerVisible(true)} />
       case 'ServiceDetail':

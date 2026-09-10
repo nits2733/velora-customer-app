@@ -166,8 +166,6 @@ export type PortfolioItemSummaryResponse = {
 
 export type BookingRequest = {
   requestType: BookingRequestType
-  professionalId?: number
-  portfolioItemId?: number
   scheduledAt: string
   notes?: string
   categoryId?: number

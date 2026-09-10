@@ -11,7 +11,6 @@ import { userApi } from '../api/user'
 import { uploadsApi } from '../api/uploads'
 import { bookingsApi } from '../api/bookings'
 import { quotationsApi } from '../api/quotations'
-import { favoritesApi } from '../api/favorites'
 import { ApiError } from '../api/client'
 import type { UserProfileResponse } from '../api/types'
 
@@ -43,7 +42,7 @@ export default function ProfileScreen() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarError, setAvatarError] = useState('')
 
-  const [stats, setStats] = useState<{ projects: number; quotations: number; saved: number } | null>(null)
+  const [stats, setStats] = useState<{ projects: number; quotations: number } | null>(null)
 
   useEffect(() => {
     userApi.getProfile()
@@ -62,15 +61,9 @@ export default function ProfileScreen() {
             r.status === 'fulfilled' && r.value.status !== 'DRAFT'
         ).length
 
-        const [professionalsFav, portfolioFav] = await Promise.all([
-          favoritesApi.listProfessionals(0, 1).catch(() => null),
-          favoritesApi.listPortfolioItems(0, 1).catch(() => null),
-        ])
-        const saved = (professionalsFav?.totalElements || 0) + (portfolioFav?.totalElements || 0)
-
-        setStats({ projects: page.totalElements, quotations: quotationsCount, saved })
+        setStats({ projects: page.totalElements, quotations: quotationsCount })
       })
-      .catch(() => setStats({ projects: 0, quotations: 0, saved: 0 }))
+      .catch(() => setStats({ projects: 0, quotations: 0 }))
   }, [])
 
   const displayName = profile?.fullName || auth.user?.fullName || 'Your Account'
@@ -155,7 +148,6 @@ export default function ProfileScreen() {
           {[
             { label: 'Projects', value: stats?.projects },
             { label: 'Quotations', value: stats?.quotations },
-            { label: 'Saved', value: stats?.saved },
           ].map((stat, i) => (
             <React.Fragment key={stat.label}>
               <View style={styles.statItem}>
@@ -166,7 +158,7 @@ export default function ProfileScreen() {
                 )}
                 <Text style={styles.statLabel}>{stat.label}</Text>
               </View>
-              {i < 2 && <View style={styles.statDivider} />}
+              {i < 1 && <View style={styles.statDivider} />}
             </React.Fragment>
           ))}
         </View>

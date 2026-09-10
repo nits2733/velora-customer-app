@@ -10,11 +10,9 @@ import Skeleton from '../components/Skeleton'
 import FadeInUp from '../components/FadeInUp'
 import Pulse from '../components/Pulse'
 import AnimatedPressable from '../components/AnimatedPressable'
-import InspirationCard from '../components/InspirationCard'
 import FAQItem from '../components/FAQItem'
 import { categoriesApi } from '../api/categories'
-import { portfolioApi } from '../api/portfolio'
-import type { CategoryResponse, PortfolioItemSummaryResponse } from '../api/types'
+import type { CategoryResponse } from '../api/types'
 import ImgPainting from '../../assets/images/3484d.png'
 import ImgPlumbing from '../../assets/images/af52d.png'
 import ImgElectrical from '../../assets/images/63616.png'
@@ -63,8 +61,6 @@ export default function ServicesScreen({ onHamburger }: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
-  const [inspiration, setInspiration] = useState<PortfolioItemSummaryResponse[]>([])
-
   useEffect(() => {
     setLoading(true)
     setError(false)
@@ -72,10 +68,6 @@ export default function ServicesScreen({ onHamburger }: Props) {
       .then(all => setServices(all.filter(c => c.serviceGroup === 'INDIVIDUAL_SERVICE')))
       .catch(() => setError(true))
       .finally(() => setLoading(false))
-
-    portfolioApi.search({ size: 10 })
-      .then(page => setInspiration(page.content))
-      .catch(() => setInspiration([]))
   }, [])
 
   return (
@@ -190,29 +182,6 @@ export default function ServicesScreen({ onHamburger }: Props) {
           </View>
         </View>
 
-        {/* Get inspired */}
-        {inspiration.length > 0 && (
-          <View style={s.section}>
-            <SectionHeader label="NEED IDEAS FIRST?" title="Get Inspired" />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.inspirationScroll}
-            >
-              {inspiration.map(item => (
-                <InspirationCard
-                  key={item.id}
-                  title={item.title}
-                  imageUri={item.coverImageUrl}
-                  width={150}
-                  height={190}
-                  onPress={() => router.push('InspirationDetail', { id: item.id })}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
         {/* FAQ */}
         <View style={s.section}>
           <SectionHeader title="Frequently Asked Questions" />
@@ -278,7 +247,6 @@ const s = StyleSheet.create({
   stepInfo: { flex: 1, gap: 2 },
   stepTitle: { fontFamily: fonts.body, fontSize: fontSize.body, color: colors.darkText, fontWeight: fontWeight.semibold },
   stepDesc: { fontFamily: fonts.body, fontSize: fontSize.caption, color: colors.mutedText, lineHeight: 18 },
-  inspirationScroll: { gap: spacing.sm },
   faqList: { marginTop: -spacing.sm },
   sectionHeadRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: spacing.lg, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   cartBadge: { backgroundColor: colors.darkText, borderRadius: radii.round, paddingHorizontal: 12, paddingVertical: 4 },

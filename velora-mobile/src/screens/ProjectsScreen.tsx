@@ -7,12 +7,10 @@ import AppHeader from '../components/AppHeader'
 import PrimaryButton from '../components/PrimaryButton'
 import SecondaryButton from '../components/SecondaryButton'
 import SectionHeader from '../components/SectionHeader'
-import InspirationCard from '../components/InspirationCard'
 import FAQItem from '../components/FAQItem'
 import EmptyState from '../components/EmptyState'
 import { bookingsApi } from '../api/bookings'
-import { portfolioApi } from '../api/portfolio'
-import type { BookingResponse, PortfolioItemSummaryResponse } from '../api/types'
+import type { BookingResponse } from '../api/types'
 
 const UPCOMING_STEPS = [
   { title: 'Assignment', desc: 'We match your project with the right professional.' },
@@ -55,7 +53,6 @@ export default function ProjectsScreen({ onHamburger }: Props) {
 
   const [bookings, setBookings] = useState<BookingResponse[]>([])
   const [loading, setLoading] = useState(true)
-  const [inspiration, setInspiration] = useState<PortfolioItemSummaryResponse[]>([])
 
   useEffect(() => {
     if (!auth.isAuthenticated) {
@@ -69,12 +66,6 @@ export default function ProjectsScreen({ onHamburger }: Props) {
       .catch(() => setBookings([]))
       .finally(() => setLoading(false))
   }, [auth.isAuthenticated])
-
-  useEffect(() => {
-    portfolioApi.search({ size: 6 })
-      .then(page => setInspiration(page.content))
-      .catch(() => setInspiration([]))
-  }, [])
 
   const activeBookings = bookings.filter(b => b.status === 'CONFIRMED')
   const upcomingBookings = bookings.filter(b => PENDING_STATUSES.includes(b.status))
@@ -224,29 +215,6 @@ export default function ProjectsScreen({ onHamburger }: Props) {
                   <Text style={s.newProjectSub}>Get a quotation and begin your next transformation.</Text>
                   <PrimaryButton label="Book a New Project" onPress={() => router.push('StartProject')} />
                 </View>
-
-                {/* Get inspired for the next one */}
-                {inspiration.length > 0 && (
-                  <View style={s.inspireSection}>
-                    <SectionHeader label="LOVED THE RESULT?" title="Get Inspired for What's Next" />
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={s.inspirationScroll}
-                    >
-                      {inspiration.map(item => (
-                        <InspirationCard
-                          key={item.id}
-                          title={item.title}
-                          imageUri={item.coverImageUrl}
-                          width={150}
-                          height={190}
-                          onPress={() => router.push('InspirationDetail', { id: item.id })}
-                        />
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
               </>
             )}
 
@@ -331,9 +299,6 @@ const s = StyleSheet.create({
   newProjectBanner: { backgroundColor: colors.cardBg, borderRadius: radii.md, padding: spacing.xl, gap: 8, borderWidth: 1, borderColor: colors.border },
   newProjectTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.darkText, fontWeight: fontWeight.semibold, lineHeight: 26 },
   newProjectSub: { fontFamily: fonts.body, fontSize: fontSize.label, color: colors.mutedText, marginBottom: 4 },
-
-  inspireSection: { gap: spacing.lg },
-  inspirationScroll: { gap: spacing.sm },
 
   bookSection: { marginTop: spacing.sm },
 

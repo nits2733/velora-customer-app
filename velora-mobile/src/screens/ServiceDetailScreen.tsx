@@ -6,11 +6,8 @@ import { useCart } from '../context/CartContext'
 import PrimaryButton from '../components/PrimaryButton'
 import InputField from '../components/InputField'
 import SectionHeader from '../components/SectionHeader'
-import InspirationCard from '../components/InspirationCard'
 import FAQItem from '../components/FAQItem'
 import Pulse from '../components/Pulse'
-import { portfolioApi } from '../api/portfolio'
-import type { PortfolioItemSummaryResponse } from '../api/types'
 import DEFAULT_IMAGE from '../../assets/images/45a7e.png'
 
 type Catalog = { options: string[]; includes: string[]; priceRange: string; timeline: string }
@@ -106,15 +103,6 @@ export default function ServiceDetailScreen() {
   const [notes, setNotes] = useState('')
   const [added, setAdded] = useState(false)
   const [addedPulse, setAddedPulse] = useState(0)
-
-  const [recentWork, setRecentWork] = useState<PortfolioItemSummaryResponse[]>([])
-
-  useEffect(() => {
-    if (!categoryId) return
-    portfolioApi.search({ category: categoryId, size: 6 })
-      .then(page => setRecentWork(page.content))
-      .catch(() => setRecentWork([]))
-  }, [categoryId])
 
   const handleAddToCart = () => {
     addToCart({
@@ -271,29 +259,6 @@ export default function ServiceDetailScreen() {
               ))}
             </View>
           </View>
-
-          {/* Recent Work */}
-          {recentWork.length > 0 && (
-            <View style={styles.section}>
-              <SectionHeader label="FROM OUR PROFESSIONALS" title="Recent Work" />
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.recentWorkScroll}
-              >
-                {recentWork.map(item => (
-                  <InspirationCard
-                    key={item.id}
-                    title={item.title}
-                    imageUri={item.coverImageUrl}
-                    width={150}
-                    height={190}
-                    onPress={() => router.push('InspirationDetail', { id: item.id })}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-          )}
 
           {/* FAQ */}
           <View style={styles.section}>
@@ -655,10 +620,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.caption,
     color: colors.mutedText,
     lineHeight: 18,
-  },
-
-  recentWorkScroll: {
-    gap: spacing.sm,
   },
 
   disclaimer: {
