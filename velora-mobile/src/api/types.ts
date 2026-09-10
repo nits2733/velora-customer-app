@@ -127,6 +127,7 @@ export type CategoryResponse = {
   name: string
   description: string
   serviceGroup: CategoryServiceGroup
+  imageUrl: string | null
 }
 
 // ─── Portfolio ─────────────────────────────────────────
