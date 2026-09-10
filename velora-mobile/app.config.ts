@@ -42,7 +42,11 @@ const config: ExpoConfig = {
     googleWebClientId: GOOGLE_WEB_CLIENT_ID,
     googleIosClientId: GOOGLE_IOS_CLIENT_ID,
     googleAndroidClientId: GOOGLE_ANDROID_CLIENT_ID,
+    eas: {
+      projectId: 'baf7fa3f-ebe4-4d07-8693-9dd7f53069d9',
+    },
   },
+  owner: 'velora1818',
 }
 
 export default config
