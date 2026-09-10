@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  Image,
 } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii, fontWeight, shadows } from '../theme/tokens'
 import AppHeader from '../components/AppHeader'
@@ -16,6 +17,18 @@ import AnimatedPressable from '../components/AnimatedPressable'
 import { categoriesApi } from '../api/categories'
 import type { CategoryResponse } from '../api/types'
 import { useRouter } from '../navigation/router'
+import ImgContemporaryLiving from '../../assets/images/90052.png'
+import ImgMinimalistKitchen from '../../assets/images/94bfe.png'
+import ImgWarmBedroom from '../../assets/images/89a8f.png'
+import ImgSanctuaryBath from '../../assets/images/f1c0e.png'
+import FALLBACK_IMAGE from '../../assets/images/9986c.png'
+
+const CATEGORY_IMAGES: Record<string, number> = {
+  'Living Room': ImgContemporaryLiving,
+  'Bedroom': ImgWarmBedroom,
+  'Kitchen': ImgMinimalistKitchen,
+  'Bathroom': ImgSanctuaryBath,
+}
 
 type Props = {
   onHamburger?: () => void
@@ -78,8 +91,11 @@ export default function ExploreScreen({ onHamburger }: Props) {
         <View style={styles.categoryGrid}>
           {Array.from({ length: 4 }).map((_, i) => (
             <View key={i} style={styles.categoryCard}>
-              <Skeleton height={20} width="70%" />
-              <Skeleton height={14} width="90%" style={{ marginTop: 10 }} />
+              <Skeleton height={110} radius={0} />
+              <View style={styles.categoryCardInner}>
+                <Skeleton height={20} width="70%" />
+                <Skeleton height={14} width="90%" style={{ marginTop: 10 }} />
+              </View>
             </View>
           ))}
         </View>
@@ -101,11 +117,18 @@ export default function ExploreScreen({ onHamburger }: Props) {
         <View style={styles.categoryGrid}>
           {filteredCategories.map((cat, i) => (
             <FadeInUp key={cat.id} delay={i * 40} style={styles.categoryCard}>
-              <AnimatedPressable style={styles.categoryCardInner} onPress={() => router.push('StartProject')}>
-                <Text style={styles.categoryName}>{cat.name}</Text>
-                {cat.description ? (
-                  <Text style={styles.categoryDescription} numberOfLines={3}>{cat.description}</Text>
-                ) : null}
+              <AnimatedPressable onPress={() => router.push('StartProject')}>
+                <Image
+                  source={CATEGORY_IMAGES[cat.name] || FALLBACK_IMAGE}
+                  style={styles.categoryImage}
+                  alt={cat.name}
+                />
+                <View style={styles.categoryCardInner}>
+                  <Text style={styles.categoryName}>{cat.name}</Text>
+                  {cat.description ? (
+                    <Text style={styles.categoryDescription} numberOfLines={3}>{cat.description}</Text>
+                  ) : null}
+                </View>
               </AnimatedPressable>
             </FadeInUp>
           ))}
@@ -180,11 +203,17 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: 'hidden',
     ...shadows.sm,
+  },
+  categoryImage: {
+    width: '100%',
+    height: 110,
+    resizeMode: 'cover',
   },
   categoryCardInner: {
     padding: spacing.lg,
-    minHeight: 100,
+    minHeight: 90,
   },
   categoryName: {
     fontSize: fontSize.label,
