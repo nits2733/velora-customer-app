@@ -4,6 +4,7 @@ import { colors, fonts, fontSize, spacing } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 import InputField from '../components/InputField'
 import PrimaryButton from '../components/PrimaryButton'
+import GoogleSignInButton from '../components/GoogleSignInButton'
 import { authApi } from '../api/auth'
 import { ApiError } from '../api/client'
 
@@ -15,7 +16,12 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [googleError, setGoogleError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  const goToReturnRoute = () => {
+    router.replace(returnTo || 'Home', returnTo ? returnParams : undefined)
+  }
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -80,6 +86,17 @@ export default function LoginScreen() {
           We'll send a one-time code to your email to confirm it's you.
         </Text>
 
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <View>
+          <GoogleSignInButton onSuccess={goToReturnRoute} onError={setGoogleError} />
+          {googleError ? <Text style={styles.googleError}>{googleError}</Text> : null}
+        </View>
+
         <Pressable onPress={() => router.push('Register', { returnTo, returnParams })}>
           <Text style={styles.registerLink}>New here? Create an account</Text>
         </Pressable>
@@ -139,5 +156,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     textDecorationLine: 'underline',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: -spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    fontSize: fontSize.caption,
+    fontFamily: fonts.body,
+    color: colors.mutedText,
+    letterSpacing: 1,
+  },
+  googleError: {
+    fontSize: fontSize.caption,
+    fontFamily: fonts.body,
+    color: colors.error,
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
 })

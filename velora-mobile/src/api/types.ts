@@ -51,6 +51,10 @@ export type RefreshTokenRequest = {
   refreshToken: string
 }
 
+export type GoogleLoginRequest = {
+  idToken: string
+}
+
 export type UserSummary = {
   id: number
   email: string

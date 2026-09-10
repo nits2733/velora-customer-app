@@ -8,6 +8,7 @@ import type {
   ResetPasswordRequest,
   ChangePasswordRequest,
   RefreshTokenRequest,
+  GoogleLoginRequest,
   AuthResponse,
   OtpResponse,
   ForgotPasswordResponse,
@@ -30,6 +31,11 @@ export const authApi = {
 
   verifyLoginOtp: (data: VerifyOtpRequest) =>
     api.post<AuthResponse>('/api/auth/verify-login-otp', data),
+
+  // No OTP step — Google already verified the user's email. Response is a
+  // full AuthResponse, same shape as verify-login-otp/verify-email.
+  google: (data: GoogleLoginRequest) =>
+    api.post<AuthResponse>('/api/auth/google', data),
 
   forgotPassword: (data: ForgotPasswordRequest) =>
     api.post<ForgotPasswordResponse>('/api/auth/forgot-password', data),
