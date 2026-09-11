@@ -1,13 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { View, Text, Image, Pressable, ScrollView, StyleSheet } from 'react-native'
 import { colors, fonts, fontSize, spacing, shadows, radii, fontWeight } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
-import { useCart } from '../context/CartContext'
 import PrimaryButton from '../components/PrimaryButton'
-import InputField from '../components/InputField'
 import SectionHeader from '../components/SectionHeader'
 import FAQItem from '../components/FAQItem'
-import Pulse from '../components/Pulse'
 import DEFAULT_IMAGE from '../../assets/images/45a7e.png'
 
 type Catalog = { options: string[]; includes: string[]; priceRange: string; timeline: string }
@@ -88,7 +85,6 @@ function getParam(router: ReturnType<typeof useRouter>, key: string): string {
 
 export default function ServiceDetailScreen() {
   const router = useRouter()
-  const { addToCart, cartCount } = useCart()
 
   const categoryId = Number(router.getParam('id')) || 0
   const name = getParam(router, 'name') || 'Service'
@@ -98,25 +94,17 @@ export default function ServiceDetailScreen() {
 
   const catalog = SERVICE_CATALOG[categoryId] || DEFAULT_CATALOG
 
+  // Always pre-selected (never empty) so there's nothing to validate before
+  // continuing - the customer can change it, but can't leave it unset.
   const [selectedOption, setSelectedOption] = useState(catalog.options[0])
-  const [quantity, setQuantity] = useState(1)
-  const [notes, setNotes] = useState('')
-  const [added, setAdded] = useState(false)
-  const [addedPulse, setAddedPulse] = useState(0)
 
-  const handleAddToCart = () => {
-    addToCart({
-      id: `${categoryId || name}-${selectedOption}`,
-      name,
-      config: selectedOption,
-      price: catalog.priceRange,
-      quantity,
-      notes: notes.trim() || undefined,
+  const handleStartRequest = () => {
+    router.push('ServiceRequest', {
       categoryId: categoryId || undefined,
+      name,
+      selectedOption,
+      priceRange: catalog.priceRange,
     })
-    setAdded(true)
-    setAddedPulse(p => p + 1)
-    setTimeout(() => setAdded(false), 2000)
   }
 
   return (
@@ -163,6 +151,9 @@ export default function ServiceDetailScreen() {
               <Text style={styles.priceValue}>{catalog.timeline}</Text>
             </View>
           </View>
+          <Text style={styles.priceDisclaimer}>
+            This is an estimate, not a checkout price. Final pricing is confirmed after your request is reviewed.
+          </Text>
 
           {/* Options */}
           <View style={styles.section}>
@@ -188,33 +179,6 @@ export default function ServiceDetailScreen() {
             </View>
           </View>
 
-          {/* Quantity */}
-          <View style={styles.section}>
-            <View style={styles.quantityCard}>
-              <View style={styles.quantityInfo}>
-                <Text style={styles.sectionTitle}>Quantity / Rooms</Text>
-                <Text style={styles.quantityHint}>How many rooms or units need this service?</Text>
-              </View>
-              <View style={styles.stepperRow}>
-                <Pressable
-                  style={styles.stepperBtn}
-                  onPress={() => setQuantity(q => Math.max(1, q - 1))}
-                  accessibilityLabel="Decrease quantity"
-                >
-                  <Text style={styles.stepperBtnText}>−</Text>
-                </Pressable>
-                <Text style={styles.stepperValue}>{quantity}</Text>
-                <Pressable
-                  style={styles.stepperBtn}
-                  onPress={() => setQuantity(q => Math.min(20, q + 1))}
-                  accessibilityLabel="Increase quantity"
-                >
-                  <Text style={styles.stepperBtnText}>+</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-
           {/* What's Included */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>What's Included</Text>
@@ -228,18 +192,6 @@ export default function ServiceDetailScreen() {
                 </View>
               ))}
             </View>
-          </View>
-
-          {/* Notes */}
-          <View style={styles.section}>
-            <InputField
-              label="Notes for the professional"
-              placeholder="Any specific requirements, size, or details..."
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={3}
-            />
           </View>
 
           {/* How it works */}
@@ -281,17 +233,10 @@ export default function ServiceDetailScreen() {
           <Text style={styles.footerPriceValue}>{catalog.priceRange}</Text>
         </View>
         <View style={styles.footerActions}>
-          <Pulse trigger={addedPulse}>
-            <PrimaryButton
-              label={added ? 'Added! ✓' : 'Add to Cart'}
-              onPress={handleAddToCart}
-            />
-          </Pulse>
-          {cartCount > 0 && (
-            <Pressable onPress={() => router.push('Checkout')} accessibilityRole="link">
-              <Text style={styles.viewCartLink}>View Cart ({cartCount}) & Checkout →</Text>
-            </Pressable>
-          )}
+          <PrimaryButton
+            label="Start Service Request"
+            onPress={handleStartRequest}
+          />
         </View>
       </View>
     </View>
@@ -493,53 +438,12 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
   },
 
-  // Quantity
-  quantityCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    backgroundColor: colors.cardBg,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-  },
-  quantityInfo: {
-    flex: 1,
-  },
-  quantityHint: {
+  priceDisclaimer: {
     fontSize: fontSize.caption,
     fontFamily: fonts.body,
     color: colors.mutedText,
     lineHeight: 16,
-  },
-  stepperRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  stepperBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.white,
-  },
-  stepperBtnText: {
-    fontSize: 16,
-    fontFamily: fonts.body,
-    color: colors.darkText,
-    fontWeight: fontWeight.semibold,
-  },
-  stepperValue: {
-    fontSize: fontSize.h4,
-    fontFamily: fonts.heading,
-    color: colors.darkText,
-    fontWeight: fontWeight.bold,
-    minWidth: 20,
-    textAlign: 'center',
+    marginTop: -spacing.sm,
   },
 
   // What's included
@@ -667,12 +571,5 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 6,
     alignItems: 'stretch',
-  },
-  viewCartLink: {
-    fontSize: fontSize.caption,
-    fontFamily: fonts.body,
-    color: colors.accent,
-    fontWeight: fontWeight.semibold,
-    textAlign: 'center',
   },
 })

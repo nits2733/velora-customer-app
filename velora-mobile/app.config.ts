@@ -25,7 +25,7 @@ const config: ExpoConfig = {
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
+      backgroundColor: '#FEF9EA',
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',
@@ -36,7 +36,21 @@ const config: ExpoConfig = {
   web: {
     favicon: './assets/favicon.png',
   },
-  plugins: ['expo-router', 'expo-status-bar', 'expo-web-browser'],
+  plugins: [
+    'expo-router',
+    'expo-status-bar',
+    'expo-web-browser',
+    [
+      'expo-build-properties',
+      {
+        android: {
+          gradleProperties: {
+            'org.gradle.jvmargs': '-Xmx4096m -XX:MaxMetaspaceSize=1024m',
+          },
+        },
+      },
+    ],
+  ],
   extra: {
     apiBaseUrl: API_BASE_URL,
     googleWebClientId: GOOGLE_WEB_CLIENT_ID,

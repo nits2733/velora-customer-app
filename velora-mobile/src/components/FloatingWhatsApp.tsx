@@ -6,7 +6,7 @@ export default function FloatingWhatsApp() {
   return (
     <Pressable
       style={({ pressed }: { pressed: boolean }) => [styles.btn, pressed && styles.pressed]}
-      onPress={() => Linking.openURL('https://wa.me/919876543210')}
+      onPress={() => Linking.openURL('https://wa.me/918210827121')}
     >
       <Text style={styles.icon}>💬</Text>
     </Pressable>

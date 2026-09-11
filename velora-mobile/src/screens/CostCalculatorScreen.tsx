@@ -148,7 +148,7 @@ export default function CostCalculatorScreen() {
         {result && (
           <SecondaryButton
             label="Request Detailed Quote"
-            onPress={() => router.push('Checkout')}
+            onPress={() => router.push('StartProject')}
           />
         )}
 

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { BackHandler, Platform } from 'react-native'
 
 export type Route = {
   name: string
@@ -69,6 +70,24 @@ export function RouterProvider({ children }: { children: ReactNode }) {
   }
 
   const getParam = (key: string) => currentRoute.params?.[key]
+
+  useEffect(() => {
+    // There's no native navigation stack backing this router (screens are
+    // just JS state, see AppContent) - without this, Android's hardware
+    // back button has nothing to intercept it and falls through to the OS
+    // default, which exits the app instead of going back a screen.
+    if (Platform.OS === 'web') return
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (history.length > 1) {
+        setHistory(prev => prev.slice(0, -1))
+        return true
+      }
+      // At the root screen - let the OS handle it (exit/minimize), the
+      // normal Android expectation.
+      return false
+    })
+    return () => subscription.remove()
+  }, [history])
 
   return (
     <RouterContext.Provider value={{ currentRoute, history, push, back, replace, getParam }}>

@@ -8,8 +8,8 @@ import PrimaryButton from '../components/PrimaryButton'
 export default function SupportScreen() {
   const router = useRouter()
   const options = [
-    { icon: '💬', label: 'Chat on WhatsApp', desc: 'Get a quick response via WhatsApp', action: () => Linking.openURL('https://wa.me/919876543210') },
-    { icon: '📞', label: 'Call Us', desc: '+91 98765 43210 · Mon–Sat, 9am–7pm', action: () => Linking.openURL('tel:+919876543210') },
+    { icon: '💬', label: 'Chat on WhatsApp', desc: 'Get a quick response via WhatsApp', action: () => Linking.openURL('https://wa.me/918210827121') },
+    { icon: '📞', label: 'Call Us', desc: '+91 82108 27121 · Mon–Sat, 9am–7pm', action: () => Linking.openURL('tel:+918210827121') },
     { icon: '✉️', label: 'Email Us', desc: 'support@velora.in · We reply within 24 hours', action: () => Linking.openURL('mailto:support@velora.in') },
   ]
   return (

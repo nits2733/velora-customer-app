@@ -11,22 +11,13 @@ import { bookingsApi } from '../api/bookings'
 import { quotationsApi } from '../api/quotations'
 import { ApiError } from '../api/client'
 import type { BookingResponse, QuotationResponse, QuotationStatus } from '../api/types'
+import { projectTitle, formatDate } from '../utils/booking'
 
 const STATUS_DISPLAY: Record<QuotationStatus, { label: string; key: keyof typeof statusColors }> = {
   DRAFT: { label: 'Draft', key: 'pending' },
   SENT: { label: 'Pending Review', key: 'pending' },
   ACCEPTED: { label: 'Approved', key: 'approved' },
   REJECTED: { label: 'Rejected', key: 'rejected' },
-}
-
-function projectTitle(b: BookingResponse): string {
-  return b.categoryName || b.portfolioItemTitle || (b.requestType === 'FULL_HOME_PROJECT' ? 'Full Home Project' : 'Service Request')
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 export default function QuotationDetailScreen() {

@@ -18,8 +18,11 @@ export default function Step1() {
   const [area, setArea] = useState('')
   const [location, setLocation] = useState('')
 
+  const presetScope = router.getParam('presetScope') || ''
+  const presetStyle = router.getParam('presetStyle') || ''
+
   const handleContinue = () => {
-    router.push('StartProject_Step2', { propertyType, bedrooms, area, location })
+    router.push('StartProject_Step2', { propertyType, bedrooms, area, location, presetScope, presetStyle })
   }
 
   return (

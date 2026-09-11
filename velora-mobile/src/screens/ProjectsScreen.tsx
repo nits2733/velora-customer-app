@@ -11,6 +11,7 @@ import FAQItem from '../components/FAQItem'
 import EmptyState from '../components/EmptyState'
 import { bookingsApi } from '../api/bookings'
 import type { BookingResponse } from '../api/types'
+import { projectTitle, formatDate, budgetRangeText, statusLabel, statusColorKey } from '../utils/booking'
 
 const UPCOMING_STEPS = [
   { title: 'Assignment', desc: 'We match your project with the right professional.' },
@@ -25,20 +26,6 @@ const PROJECT_FAQS = [
 ]
 
 const PENDING_STATUSES = ['PENDING_ASSIGNMENT', 'PENDING']
-
-function projectTitle(b: BookingResponse): string {
-  return b.categoryName || b.portfolioItemTitle || (b.requestType === 'FULL_HOME_PROJECT' ? 'Full Home Project' : 'Service Request')
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function pendingLabel(status: string): string {
-  return status === 'PENDING_ASSIGNMENT' ? 'AWAITING ASSIGNMENT' : 'PENDING'
-}
 
 type Tab = 'Active' | 'Upcoming' | 'Complete'
 
@@ -109,23 +96,23 @@ export default function ProjectsScreen({ onHamburger }: Props) {
                       <View style={s.activeBody}>
                         <View style={s.activeMeta}>
                           {b.location && <Text style={s.activeLoc}>📍 {b.location}</Text>}
-                          {b.budget != null && <Text style={s.activeBudget}>₹{b.budget.toLocaleString('en-IN')}</Text>}
+                          {budgetRangeText(b) && <Text style={s.activeBudget}>{budgetRangeText(b)}</Text>}
                         </View>
                         <Text style={s.activeTitle}>{projectTitle(b)}</Text>
                         <Text style={s.activeDate}>Scheduled for {formatDate(b.scheduledAt)}</Text>
 
-                        {b.professionalName ? (
+                        {b.professional ? (
                           <View style={s.proRow}>
                             <View style={s.proAvatar}>
-                              <Text style={s.proInitials}>{b.professionalName.split(' ').map(w => w[0]).slice(0, 2).join('')}</Text>
+                              <Text style={s.proInitials}>{b.professional.fullName.split(' ').map((w: string) => w[0]).slice(0, 2).join('')}</Text>
                             </View>
                             <View style={s.proInfo}>
-                              <Text style={s.proName}>{b.professionalName}</Text>
+                              <Text style={s.proName}>{b.professional.fullName}</Text>
                               <Text style={s.proRole}>Assigned Professional</Text>
                             </View>
                           </View>
                         ) : (
-                          <Text style={s.awaitingTxt}>Awaiting professional assignment</Text>
+                          <Text style={s.awaitingTxt}>Waiting for our team</Text>
                         )}
 
                         <View style={s.activeActions}>
@@ -151,14 +138,14 @@ export default function ProjectsScreen({ onHamburger }: Props) {
                 <>
                   <Text style={s.sectionLabel}>Upcoming Projects</Text>
                   {upcomingBookings.map(b => {
-                    const sc = statusColors.pending
+                    const sc = statusColors[statusColorKey(b.status)]
                     return (
                       <Pressable key={b.id} style={s.upcomingCard} onPress={() => router.push('ProjectDetail', { id: String(b.id) })}>
                         <View style={s.upcomingLeft}>
                           <Text style={s.upcomingTitle}>{projectTitle(b)}</Text>
                           <Text style={s.upcomingDate}>Scheduled for {formatDate(b.scheduledAt)}</Text>
                           <View style={[s.statusPill, { backgroundColor: sc.bg }]}>
-                            <Text style={[s.statusPillTxt, { color: sc.text }]}>{pendingLabel(b.status)}</Text>
+                            <Text style={[s.statusPillTxt, { color: sc.text }]}>{statusLabel(b.status)}</Text>
                           </View>
                         </View>
                         <Text style={s.upcomingArrow}>›</Text>

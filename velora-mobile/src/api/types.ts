@@ -4,6 +4,7 @@ export type UserRole = 'CUSTOMER' | 'PROFESSIONAL' | 'ADMIN'
 export type AvailabilityStatus = 'AVAILABLE' | 'UNAVAILABLE'
 export type BookingRequestType = 'FULL_HOME_PROJECT' | 'INDIVIDUAL_SERVICE'
 export type BookingStatus = 'PENDING_ASSIGNMENT' | 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
+export type BookingTimeline = 'ASAP' | 'WITHIN_1_MONTH' | 'ONE_TO_THREE_MONTHS' | 'FLEXIBLE'
 export type QuotationStatus = 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED'
 export type CategoryServiceGroup = 'HOME_PROJECT' | 'INDIVIDUAL_SERVICE'
 
@@ -171,8 +172,11 @@ export type BookingRequest = {
   notes?: string
   categoryId?: number
   preferredStyle?: string
-  budget?: number
+  budgetMin?: number
+  budgetMax?: number
+  preferredTimeline?: BookingTimeline
   location?: string
+  inspirationImageUrls?: string[]
 }
 
 export type BookingResponse = {
@@ -180,14 +184,14 @@ export type BookingResponse = {
   requestType: BookingRequestType
   customerId: number
   customerName: string
-  professionalId?: number
-  professionalName?: string
-  portfolioItemId?: number
-  portfolioItemTitle?: string
+  professional?: ProfessionalSummaryResponse
+  portfolioItem?: PortfolioItemSummaryResponse
   categoryId?: number
   categoryName?: string
   preferredStyle?: string
-  budget?: number
+  budgetMin?: number
+  budgetMax?: number
+  preferredTimeline?: BookingTimeline
   location?: string
   scheduledAt: string
   status: BookingStatus

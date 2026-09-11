@@ -2,7 +2,6 @@ import React from 'react'
 import { View, StyleSheet } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { RouterProvider } from '../src/navigation/router'
-import { CartProvider } from '../src/context/CartContext'
 import { AuthProvider } from '../src/context/AuthContext'
 import AppContent from '../src/AppContent'
 
@@ -12,9 +11,7 @@ export default function RootLayout() {
       <View style={styles.root}>
         <RouterProvider>
           <AuthProvider>
-            <CartProvider>
-              <AppContent />
-            </CartProvider>
+            <AppContent />
           </AuthProvider>
         </RouterProvider>
       </View>

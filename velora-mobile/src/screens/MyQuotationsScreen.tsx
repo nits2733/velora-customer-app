@@ -8,6 +8,7 @@ import { useRouter } from '../navigation/router'
 import { bookingsApi } from '../api/bookings'
 import { quotationsApi } from '../api/quotations'
 import type { BookingResponse, QuotationResponse, QuotationStatus } from '../api/types'
+import { projectTitle, formatDate } from '../utils/booking'
 
 type Entry = { booking: BookingResponse; quotation: QuotationResponse }
 
@@ -15,16 +16,6 @@ const DISPLAY_STATUS: Partial<Record<QuotationStatus, 'Pending' | 'Approved' | '
   SENT: 'Pending',
   ACCEPTED: 'Approved',
   REJECTED: 'Rejected',
-}
-
-function projectTitle(b: BookingResponse): string {
-  return b.categoryName || b.portfolioItemTitle || (b.requestType === 'FULL_HOME_PROJECT' ? 'Full Home Project' : 'Service Request')
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 export default function MyQuotationsScreen() {

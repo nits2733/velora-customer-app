@@ -4,9 +4,10 @@ import { colors, fonts, fontSize, spacing, radii, fontWeight } from '../../theme
 import { useRouter } from '../../navigation/router'
 import PrimaryButton from '../../components/PrimaryButton'
 import SecondaryButton from '../../components/SecondaryButton'
+import { TIMELINE_OPTIONS } from '../../utils/booking'
+import type { BookingTimeline } from '../../api/types'
 
 const budgets = ['Below ₹5L', '₹5L–₹10L', '₹10L–₹25L', 'Above ₹25L', 'Not sure']
-const timelines = ['As soon as possible', '1–3 months', '3–6 months', '6+ months']
 
 export default function Step3() {
   const router = useRouter()
@@ -19,7 +20,7 @@ export default function Step3() {
   const rooms = router.getParam('rooms') || []
 
   const [budget, setBudget] = useState('₹10L–₹25L')
-  const [timeline, setTimeline] = useState('1–3 months')
+  const [timeline, setTimeline] = useState<BookingTimeline>('ONE_TO_THREE_MONTHS')
   const [notes, setNotes] = useState('')
 
   return (
@@ -47,9 +48,9 @@ export default function Step3() {
 
         <Text style={s.fieldLabel}>Expected Timeline</Text>
         <View style={s.timelineChips}>
-          {timelines.map(t => (
-            <Pressable key={t} style={[s.timeChip, timeline === t && s.chipActive]} onPress={() => setTimeline(t)}>
-              <Text style={[s.chipTxt, timeline === t && s.chipTxtActive]}>{t}</Text>
+          {TIMELINE_OPTIONS.map(opt => (
+            <Pressable key={opt.value} style={[s.timeChip, timeline === opt.value && s.chipActive]} onPress={() => setTimeline(opt.value)}>
+              <Text style={[s.chipTxt, timeline === opt.value && s.chipTxtActive]}>{opt.label}</Text>
             </Pressable>
           ))}
         </View>

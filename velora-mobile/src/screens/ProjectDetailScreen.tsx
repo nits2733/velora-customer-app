@@ -5,7 +5,8 @@ import { useRouter } from '../navigation/router'
 import PrimaryButton from '../components/PrimaryButton'
 import EmptyState from '../components/EmptyState'
 import { bookingsApi } from '../api/bookings'
-import type { BookingResponse, BookingStatus } from '../api/types'
+import type { BookingResponse } from '../api/types'
+import { projectTitle, formatDate, budgetRangeText, statusLabel, statusColorKey } from '../utils/booking'
 import ImgLivingRoom from '../../assets/images/95cf7.png'
 import ImgBedroom from '../../assets/images/f1c0e.png'
 import ImgKitchen from '../../assets/images/90052.png'
@@ -17,24 +18,6 @@ const CATEGORY_IMAGES: Record<string, number> = {
   'Bedroom': ImgBedroom,
   'Kitchen': ImgKitchen,
   'Bathroom': ImgBathroom,
-}
-
-const STATUS_DISPLAY: Record<BookingStatus, { label: string; key: keyof typeof statusColors }> = {
-  PENDING_ASSIGNMENT: { label: 'Awaiting Assignment', key: 'pending' },
-  PENDING: { label: 'Pending', key: 'pending' },
-  CONFIRMED: { label: 'In Progress', key: 'approved' },
-  COMPLETED: { label: 'Completed', key: 'approved' },
-  CANCELLED: { label: 'Cancelled', key: 'rejected' },
-}
-
-function projectTitle(b: BookingResponse): string {
-  return b.categoryName || b.portfolioItemTitle || (b.requestType === 'FULL_HOME_PROJECT' ? 'Full Home Project' : 'Service Request')
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
 export default function ProjectDetailScreen() {
@@ -81,8 +64,7 @@ export default function ProjectDetailScreen() {
     )
   }
 
-  const statusInfo = STATUS_DISPLAY[booking.status]
-  const sc = statusColors[statusInfo.key]
+  const sc = statusColors[statusColorKey(booking.status)]
   const heroImage = (booking.categoryName && CATEGORY_IMAGES[booking.categoryName]) || FALLBACK_IMAGE
 
   return (
@@ -101,7 +83,7 @@ export default function ProjectDetailScreen() {
           {/* Status + Title */}
           <View style={styles.statusRow}>
             <View style={[styles.statusBadge, { backgroundColor: sc.bg }]}>
-              <Text style={[styles.statusText, { color: sc.text }]}>{statusInfo.label}</Text>
+              <Text style={[styles.statusText, { color: sc.text }]}>{statusLabel(booking.status)}</Text>
             </View>
           </View>
           <Text style={styles.projectTitle}>{projectTitle(booking)}</Text>
@@ -116,12 +98,12 @@ export default function ProjectDetailScreen() {
             )}
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Scheduled</Text>
-              <Text style={styles.detailValue}>{formatDate(booking.scheduledAt)}</Text>
+              <Text style={styles.detailValue}>{formatDate(booking.scheduledAt, 'long')}</Text>
             </View>
-            {booking.budget != null && (
+            {budgetRangeText(booking) && (
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Budget</Text>
-                <Text style={styles.detailValue}>₹{booking.budget.toLocaleString('en-IN')}</Text>
+                <Text style={styles.detailValue}>{budgetRangeText(booking)}</Text>
               </View>
             )}
             {booking.preferredStyle && (
@@ -143,15 +125,15 @@ export default function ProjectDetailScreen() {
 
           {/* Assigned Professional */}
           <Text style={styles.sectionHeading}>Assigned Professional</Text>
-          {booking.professionalName ? (
+          {booking.professional ? (
             <View style={styles.proCard}>
               <View style={styles.proAvatarFallback}>
                 <Text style={styles.proInitials}>
-                  {booking.professionalName.split(' ').map(w => w[0]).slice(0, 2).join('')}
+                  {booking.professional.fullName.split(' ').map((w: string) => w[0]).slice(0, 2).join('')}
                 </Text>
               </View>
               <View style={styles.proInfo}>
-                <Text style={styles.proName}>{booking.professionalName}</Text>
+                <Text style={styles.proName}>{booking.professional.fullName}</Text>
               </View>
             </View>
           ) : (

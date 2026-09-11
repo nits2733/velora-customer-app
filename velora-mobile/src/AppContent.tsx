@@ -10,10 +10,13 @@ import HomeScreen from './screens/HomeScreen'
 import ExploreScreen from './screens/ExploreScreen'
 import ServicesScreen from './screens/ServicesScreen'
 import ServiceDetailScreen from './screens/ServiceDetailScreen'
-import CartScreen from './screens/CartScreen'
-import CheckoutScreen from './screens/CheckoutScreen'
+import ServiceRequestScreen from './screens/ServiceRequestScreen'
 import ProjectsScreen from './screens/ProjectsScreen'
 import ProjectDetailScreen from './screens/ProjectDetailScreen'
+import CategoryDetailScreen from './screens/CategoryDetailScreen'
+import PopularProjectDetailScreen from './screens/PopularProjectDetailScreen'
+import InspirationDetailScreen from './screens/InspirationDetailScreen'
+import StyleDetailScreen from './screens/StyleDetailScreen'
 import ProfileScreen from './screens/ProfileScreen'
 import LoginScreen from './screens/LoginScreen'
 import RegisterScreen from './screens/RegisterScreen'
@@ -71,14 +74,20 @@ export default function AppContent() {
         return <ServicesScreen onHamburger={() => setHamburgerVisible(true)} />
       case 'ServiceDetail':
         return <ServiceDetailScreen />
-      case 'Cart':
-        return <CartScreen />
-      case 'Checkout':
-        return <CheckoutScreen />
+      case 'ServiceRequest':
+        return <ServiceRequestScreen />
       case 'Projects':
         return <ProjectsScreen onHamburger={() => setHamburgerVisible(true)} />
       case 'ProjectDetail':
         return <ProjectDetailScreen />
+      case 'CategoryDetail':
+        return <CategoryDetailScreen />
+      case 'PopularProjectDetail':
+        return <PopularProjectDetailScreen />
+      case 'InspirationDetail':
+        return <InspirationDetailScreen />
+      case 'StyleDetail':
+        return <StyleDetailScreen />
       case 'Profile':
         if (auth.loading) return null
         return auth.isAuthenticated ? <ProfileScreen /> : <LoginScreen />

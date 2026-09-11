@@ -6,27 +6,15 @@ import { useAuth } from '../../context/AuthContext'
 import PrimaryButton from '../../components/PrimaryButton'
 import { bookingsApi } from '../../api/bookings'
 import { ApiError } from '../../api/client'
+import type { BookingTimeline } from '../../api/types'
+import { computeScheduledAt, timelineLabel } from '../../utils/booking'
 
-const BUDGET_VALUES: Record<string, number | undefined> = {
-  'Below ₹5L': 400000,
-  '₹5L–₹10L': 750000,
-  '₹10L–₹25L': 1750000,
-  'Above ₹25L': 3000000,
-  'Not sure': undefined,
-}
-
-const TIMELINE_DAYS: Record<string, number> = {
-  'As soon as possible': 7,
-  '1–3 months': 45,
-  '3–6 months': 135,
-  '6+ months': 210,
-}
-
-function computeScheduledAt(timeline: string): string {
-  const days = TIMELINE_DAYS[timeline] ?? 45
-  const d = new Date()
-  d.setDate(d.getDate() + days)
-  return d.toISOString()
+const BUDGET_RANGES: Record<string, [number | undefined, number | undefined]> = {
+  'Below ₹5L': [undefined, 500000],
+  '₹5L–₹10L': [500000, 1000000],
+  '₹10L–₹25L': [1000000, 2500000],
+  'Above ₹25L': [2500000, undefined],
+  'Not sure': [undefined, undefined],
 }
 
 export default function ReviewRequest() {
@@ -41,7 +29,7 @@ export default function ReviewRequest() {
   const style = String(router.getParam('style') || '')
   const rooms: string[] = router.getParam('rooms') || []
   const budget = String(router.getParam('budget') || '')
-  const timeline = String(router.getParam('timeline') || '')
+  const timeline = (router.getParam('timeline') || 'ONE_TO_THREE_MONTHS') as BookingTimeline
   const notes = String(router.getParam('notes') || '')
 
   const [submitting, setSubmitting] = useState(false)
@@ -53,7 +41,7 @@ export default function ReviewRequest() {
     { label: 'Area / Scope', value: [area && `${area} sq ft`, scope].filter(Boolean).join(' · ') || 'Not specified' },
     { label: 'Rooms Included', value: rooms.length > 0 ? rooms.join(', ') : 'Not specified' },
     { label: 'Style Preference', value: style || 'Not specified' },
-    { label: 'Budget / Timeline', value: [budget, timeline].filter(Boolean).join(' · ') || 'Not specified' },
+    { label: 'Budget / Timeline', value: [budget, timelineLabel(timeline)].filter(Boolean).join(' · ') || 'Not specified' },
   ]
 
   const handleSubmit = async () => {
@@ -75,12 +63,16 @@ export default function ReviewRequest() {
         notes && `Notes: ${notes}`,
       ].filter(Boolean).join('\n')
 
+      const [budgetMin, budgetMax] = BUDGET_RANGES[budget] || [undefined, undefined]
+
       const booking = await bookingsApi.create({
         requestType: 'FULL_HOME_PROJECT',
         scheduledAt: computeScheduledAt(timeline),
+        preferredTimeline: timeline,
         location: location || undefined,
         preferredStyle: style || undefined,
-        budget: BUDGET_VALUES[budget],
+        budgetMin,
+        budgetMax,
         notes: composedNotes || undefined,
       })
       router.replace('Confirmation', { id: booking.id })

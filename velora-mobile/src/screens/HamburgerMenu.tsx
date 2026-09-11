@@ -187,10 +187,9 @@ export default function HamburgerMenu({ visible, onClose }: Props) {
       onRequestClose={onClose}
     >
       <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-        {/* Dark overlay tap-to-close */}
-        <Pressable style={styles.overlayTap} onPress={onClose} />
-
-        {/* Menu panel */}
+        {/* Menu panel - rendered first so its flex-row position is the left
+            side of the screen; translateX then slides it in from off-screen
+            left into that slot. */}
         <Animated.View style={[styles.panel, { transform: [{ translateX }] }]}>
           {/* Header */}
           <View style={styles.header}>
@@ -280,6 +279,9 @@ export default function HamburgerMenu({ visible, onClose }: Props) {
             )}
           </ScrollView>
         </Animated.View>
+
+        {/* Dark overlay tap-to-close - fills the remaining space to the right of the panel */}
+        <Pressable style={styles.overlayTap} onPress={onClose} />
       </Animated.View>
 
       {/* Logout confirm modal */}

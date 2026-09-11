@@ -7,18 +7,7 @@ import SecondaryButton from '../../components/SecondaryButton'
 import EmptyState from '../../components/EmptyState'
 import { bookingsApi } from '../../api/bookings'
 import type { BookingResponse } from '../../api/types'
-
-function projectTitle(b: BookingResponse): string {
-  return b.categoryName || b.portfolioItemTitle || (b.requestType === 'FULL_HOME_PROJECT' ? 'Full Home Project' : 'Service Request')
-}
-
-const STATUS_MESSAGE: Record<string, string> = {
-  PENDING_ASSIGNMENT: 'Waiting to be matched with a professional',
-  PENDING: 'Pending confirmation',
-  CONFIRMED: 'Confirmed — in progress',
-  COMPLETED: 'Completed',
-  CANCELLED: 'Cancelled',
-}
+import { projectTitle, statusLabel } from '../../utils/booking'
 
 export default function Confirmation() {
   const router = useRouter()
@@ -69,10 +58,10 @@ export default function Confirmation() {
               <Text style={s.iconTxt}>✓</Text>
             </View>
           </View>
-          <Text style={s.title}>Request sent</Text>
-          <Text style={s.subtitle}>Your request has been sent to Velora.</Text>
+          <Text style={s.title}>Request submitted</Text>
+          <Text style={s.subtitle}>Your request has been successfully submitted.</Text>
           <Text style={s.sectionBody}>
-            Our team will review your requirements and get in touch to schedule a site visit.
+            Our team will review your requirements and assign a suitable professional. You can track progress from My Projects.
           </Text>
           <View style={s.actions}>
             <PrimaryButton label="View My Projects →" onPress={() => router.replace('Projects')} />
@@ -91,25 +80,25 @@ export default function Confirmation() {
             <Text style={s.iconTxt}>✓</Text>
           </View>
         </View>
-        <Text style={s.title}>Request sent</Text>
-        <Text style={s.subtitle}>Your project request has been sent to Velora.</Text>
+        <Text style={s.title}>Request submitted</Text>
+        <Text style={s.subtitle}>Your request has been successfully submitted.</Text>
 
         <Text style={s.sectionTitle}>What happens now?</Text>
         <Text style={s.sectionBody}>
-          {booking.professionalName
-            ? `${booking.professionalName} has been assigned to your project and will be in touch soon.`
-            : "Velora will review your requirements and assign a suitable professional. You'll be notified as soon as one is confirmed."}
+          {booking.professional
+            ? `${booking.professional.fullName} has been assigned to your project and will be in touch soon.`
+            : "Our team will review your requirements and assign a suitable professional. You can track progress from My Projects."}
         </Text>
 
         <View style={s.projectCard}>
           <Text style={s.projectCategory}>{booking.requestType === 'FULL_HOME_PROJECT' ? 'FULL HOME PROJECT' : 'INDIVIDUAL SERVICE'}</Text>
           <Text style={s.projectName}>{projectTitle(booking)}</Text>
           <View style={s.projectMeta}>
-            {booking.professionalName && <Text style={s.projectMetaTxt}>👤 {booking.professionalName}</Text>}
+            {booking.professional && <Text style={s.projectMetaTxt}>👤 {booking.professional.fullName}</Text>}
             {booking.location && <Text style={s.projectMetaTxt}>📍 {booking.location}</Text>}
           </View>
           <View style={s.statusBadge}>
-            <Text style={s.statusBadgeTxt}>{STATUS_MESSAGE[booking.status] || booking.status}</Text>
+            <Text style={s.statusBadgeTxt}>{statusLabel(booking.status)}</Text>
           </View>
         </View>
 

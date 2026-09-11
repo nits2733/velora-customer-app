@@ -20,9 +20,16 @@ export default function Step2() {
   const area = router.getParam('area') || ''
   const location = router.getParam('location') || ''
 
-  const [scope, setScope] = useState('')
-  const [style, setStyle] = useState('')
+  const presetScope = router.getParam('presetScope') || ''
+  const presetStyle = router.getParam('presetStyle') || ''
+
+  const [scope, setScope] = useState(presetScope)
+  const [style, setStyle] = useState(presetStyle)
   const [rooms, setRooms] = useState<string[]>([])
+
+  const scopeChoices = presetScope && !scopeOptions.includes(presetScope)
+    ? [presetScope, ...scopeOptions]
+    : scopeOptions
 
   const toggleRoom = (room: string) => {
     setRooms(prev =>
@@ -53,7 +60,7 @@ export default function Step2() {
         {/* Scope */}
         <Text style={styles.fieldLabel}>Scope of Work</Text>
         <View style={styles.chipRow}>
-          {scopeOptions.map(s => (
+          {scopeChoices.map(s => (
             <Pressable
               key={s}
               onPress={() => setScope(s)}

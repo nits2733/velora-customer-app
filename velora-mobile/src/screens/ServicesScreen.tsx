@@ -2,13 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { View, Text, Image, Pressable, ScrollView, StyleSheet } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii, shadows, fontWeight } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
-import { useCart } from '../context/CartContext'
 import AppHeader from '../components/AppHeader'
 import SectionHeader from '../components/SectionHeader'
 import EmptyState from '../components/EmptyState'
 import Skeleton from '../components/Skeleton'
 import FadeInUp from '../components/FadeInUp'
-import Pulse from '../components/Pulse'
 import AnimatedPressable from '../components/AnimatedPressable'
 import FAQItem from '../components/FAQItem'
 import { categoriesApi } from '../api/categories'
@@ -55,7 +53,6 @@ type Props = {
 
 export default function ServicesScreen({ onHamburger }: Props) {
   const router = useRouter()
-  const { cartCount } = useCart()
 
   const [services, setServices] = useState<CategoryResponse[]>([])
   const [loading, setLoading] = useState(true)
@@ -111,13 +108,6 @@ export default function ServicesScreen({ onHamburger }: Props) {
         <View style={s.section}>
           <View style={s.sectionHeadRow}>
             <SectionHeader title="Individual Services" />
-            {cartCount > 0 && (
-              <Pulse trigger={cartCount}>
-                <Pressable style={s.cartBadge} onPress={() => router.push('Cart')}>
-                  <Text style={s.cartBadgeTxt}>Cart ({cartCount})</Text>
-                </Pressable>
-              </Pulse>
-            )}
           </View>
 
           {loading ? (
@@ -192,20 +182,6 @@ export default function ServicesScreen({ onHamburger }: Props) {
           </View>
         </View>
       </ScrollView>
-
-      {/* Sticky cart button */}
-      <View style={s.stickyCart}>
-        <AnimatedPressable style={s.cartBtn} onPress={() => router.push('Cart')}>
-          <Text style={s.cartBtnTxt}>
-            {cartCount > 0 ? `View Cart · ${cartCount} ${cartCount === 1 ? 'service' : 'services'}` : 'Service Cart'}
-          </Text>
-          {cartCount > 0 && (
-            <Pulse trigger={cartCount} style={s.cartDot}>
-              <Text style={s.cartDotTxt}>{cartCount}</Text>
-            </Pulse>
-          )}
-        </AnimatedPressable>
-      </View>
     </View>
   )
 }
@@ -249,8 +225,6 @@ const s = StyleSheet.create({
   stepDesc: { fontFamily: fonts.body, fontSize: fontSize.caption, color: colors.mutedText, lineHeight: 18 },
   faqList: { marginTop: -spacing.sm },
   sectionHeadRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: spacing.lg, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
-  cartBadge: { backgroundColor: colors.darkText, borderRadius: radii.round, paddingHorizontal: 12, paddingVertical: 4 },
-  cartBadgeTxt: { fontFamily: fonts.body, fontSize: fontSize.caption, color: colors.white, fontWeight: fontWeight.semibold },
   loadingWrap: { paddingVertical: spacing.section, alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
   tile: { width: '47%', backgroundColor: colors.cardBg2, borderRadius: radii.md, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, ...shadows.sm },
@@ -259,9 +233,4 @@ const s = StyleSheet.create({
   tileFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, paddingVertical: 8 },
   tileName: { fontFamily: fonts.body, fontSize: fontSize.label, color: colors.darkText, fontWeight: fontWeight.semibold, letterSpacing: 0.3, flex: 1 },
   tileArrow: { fontFamily: fonts.body, fontSize: 16, color: colors.mutedText },
-  stickyCart: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: spacing.xl, paddingBottom: 12, paddingTop: 8, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
-  cartBtn: { backgroundColor: colors.black, paddingVertical: 15, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
-  cartBtnTxt: { fontFamily: fonts.body, fontSize: fontSize.label, color: colors.white, fontWeight: fontWeight.semibold, letterSpacing: 0.7 },
-  cartDot: { backgroundColor: colors.white, borderRadius: radii.round, width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
-  cartDotTxt: { fontFamily: fonts.body, fontSize: 10, color: colors.black, fontWeight: fontWeight.bold },
 })

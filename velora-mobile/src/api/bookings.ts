@@ -3,11 +3,13 @@ import type {
   BookingRequest,
   BookingResponse,
   BookingStatusUpdateRequest,
-  AssignProfessionalRequest,
-  ProfessionalMatchResponse,
   PageResponse,
 } from './types'
 
+// Admin-only endpoints (awaiting-assignment queue, recommendations, assign)
+// are deliberately not here - this is the customer app, and a customer
+// account can never hold the ADMIN role that those require. Professional
+// assignment happens only through Velora's admin.
 export const bookingsApi = {
   create: (data: BookingRequest) =>
     api.post<BookingResponse>('/api/bookings', data),
@@ -23,13 +25,4 @@ export const bookingsApi = {
 
   cancel: (id: number) =>
     api.patch<BookingResponse>(`/api/bookings/${id}/cancel`),
-
-  assign: (id: number, data: AssignProfessionalRequest) =>
-    api.patch<BookingResponse>(`/api/bookings/${id}/assign`, data),
-
-  awaitingAssignment: (page = 0, size = 20) =>
-    api.get<PageResponse<BookingResponse>>('/api/bookings/awaiting-assignment', { page, size }),
-
-  recommendations: (id: number) =>
-    api.get<ProfessionalMatchResponse[]>(`/api/bookings/${id}/recommendations`),
 }

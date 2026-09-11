@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TextInput,
   Image,
+  ImageSourcePropType,
 } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii, fontWeight, shadows } from '../theme/tokens'
 import AppHeader from '../components/AppHeader'
@@ -15,82 +16,33 @@ import Skeleton from '../components/Skeleton'
 import FadeInUp from '../components/FadeInUp'
 import AnimatedPressable from '../components/AnimatedPressable'
 import PopularProjectCard from '../components/PopularProjectCard'
-import Chip from '../components/Chip'
+import GalleryTile from '../components/GalleryTile'
 import { categoriesApi } from '../api/categories'
 import type { CategoryResponse } from '../api/types'
 import { useRouter } from '../navigation/router'
+import {
+  CATEGORY_FALLBACK_IMAGES,
+  POPULAR_PROJECTS,
+  INSPIRATION_GRID,
+  ALL_STYLES,
+  EXPLORE_DESIGN_DETAILS,
+} from '../data/exploreContent'
+import { hydrateFavorites } from '../data/favorites'
 import FALLBACK_IMAGE from '../../assets/images/9986c.png'
-import ImgModernWarmHome from '../../assets/images/ab679.png'
-import ImgContemporaryLiving from '../../assets/images/90052.png'
-import ImgMinimalistKitchen from '../../assets/images/94bfe.png'
-import ImgSanctuaryBath from '../../assets/images/f1c0e.png'
-import ImgWarmBedroom from '../../assets/images/89a8f.png'
-import ImgTravertineDetails from '../../assets/images/5aa20.png'
-import ImgCompleteInterior from '../../assets/images/45a7e.png'
-import ImgFullHomeChoice from '../../assets/images/74adb.png'
-
-// Category images aren't seeded yet (backend field is admin-set via Cloudinary,
-// still null for every category) - these keep each card visually distinct until
-// then. cat.imageUrl always wins once an admin sets a real one.
-const CATEGORY_FALLBACK_IMAGES: Record<string, number> = {
-  'Living Room': ImgContemporaryLiving,
-  'Bedroom': ImgWarmBedroom,
-  'Kitchen': ImgMinimalistKitchen,
-  'Bathroom': ImgSanctuaryBath,
-  'Dining Room': ImgCompleteInterior,
-  'Office/Study': ImgFullHomeChoice,
-  'Balcony/Outdoor': ImgTravertineDetails,
-}
-
-const POPULAR_PROJECTS = [
-  {
-    id: 'p1',
-    title: 'Modern Minimalist Home',
-    category: 'Full Home Project',
-    description: 'Clean lines and warm neutrals carried through every room.',
-    image: ImgModernWarmHome,
-  },
-  {
-    id: 'p2',
-    title: 'Warm Contemporary Villa',
-    category: 'Living Room',
-    description: 'Textured walls and soft, layered lighting for evenings in.',
-    image: ImgContemporaryLiving,
-  },
-  {
-    id: 'p3',
-    title: 'Urban Apartment Refresh',
-    category: 'Kitchen',
-    description: 'A compact, modular kitchen designed around smart storage.',
-    image: ImgMinimalistKitchen,
-  },
-  {
-    id: 'p4',
-    title: 'Sanctuary Retreat',
-    category: 'Bathroom',
-    description: 'Spa-inspired finishes for a calmer daily routine.',
-    image: ImgSanctuaryBath,
-  },
-  {
-    id: 'p5',
-    title: 'Quiet Luxury Bedroom',
-    category: 'Bedroom',
-    description: 'Tactile fabrics and a restrained, restful palette.',
-    image: ImgWarmBedroom,
-  },
-]
-
-const INSPIRATION_GRID = [
-  { id: 'i1', title: 'Travertine Details', image: ImgTravertineDetails, tall: true },
-  { id: 'i2', title: 'Complete Interior', image: ImgCompleteInterior, tall: false },
-  { id: 'i3', title: 'Full Home Living', image: ImgFullHomeChoice, tall: false },
-  { id: 'i4', title: 'Contemporary Living', image: ImgContemporaryLiving, tall: true },
-]
-
-const DESIGN_INTENTS = ['Full Home', 'Living Room', 'Bedroom', 'Kitchen', 'Office', 'Renovation']
 
 type Props = {
   onHamburger?: () => void
+}
+
+const FEATURED_PROJECT = POPULAR_PROJECTS[1]
+const MORE_TO_EXPLORE = ['Dining Room', 'Office/Study', 'Balcony/Outdoor']
+
+function getStyleImage(style: string): ImageSourcePropType {
+  const project = POPULAR_PROJECTS.find(p => p.styleTag === style)
+  if (project) return project.image
+  const inspiration = INSPIRATION_GRID.find(i => i.styleTag === style)
+  if (inspiration) return inspiration.image
+  return FALLBACK_IMAGE
 }
 
 export default function ExploreScreen({ onHamburger }: Props) {
@@ -108,15 +60,45 @@ export default function ExploreScreen({ onHamburger }: Props) {
       .then(all => setCategories(all.filter(c => c.serviceGroup === 'HOME_PROJECT')))
       .catch(() => setError(true))
       .finally(() => setLoading(false))
+    hydrateFavorites().catch(() => {})
   }, [])
 
-  const filteredCategories = useMemo(() => {
-    const q = searchText.trim().toLowerCase()
-    if (!q) return categories
+  const q = searchText.trim().toLowerCase()
+  const searching = q.length > 0
+
+  const matchedCategories = useMemo(() => {
+    if (!searching) return []
     return categories.filter(c =>
       c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q)
     )
-  }, [categories, searchText])
+  }, [categories, q, searching])
+
+  const matchedStyles = useMemo(() => {
+    if (!searching) return []
+    return ALL_STYLES.filter(s => s.toLowerCase().includes(q))
+  }, [q, searching])
+
+  const matchedProjects = useMemo(() => {
+    if (!searching) return []
+    return POPULAR_PROJECTS.filter(p =>
+      p.title.toLowerCase().includes(q) ||
+      p.description.toLowerCase().includes(q) ||
+      p.categoryTag.toLowerCase().includes(q) ||
+      p.styleTag.toLowerCase().includes(q)
+    )
+  }, [q, searching])
+
+  const matchedInspiration = useMemo(() => {
+    if (!searching) return []
+    return INSPIRATION_GRID.filter(i =>
+      i.title.toLowerCase().includes(q) ||
+      i.styleTag.toLowerCase().includes(q) ||
+      i.tags.some(t => t.toLowerCase().includes(q))
+    )
+  }, [q, searching])
+
+  const hasAnyMatches =
+    matchedCategories.length + matchedStyles.length + matchedProjects.length + matchedInspiration.length > 0
 
   return (
     <ScrollView
@@ -133,7 +115,7 @@ export default function ExploreScreen({ onHamburger }: Props) {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search project categories..."
+            placeholder="Search spaces, styles, projects, inspiration..."
             placeholderTextColor={colors.mutedText}
             value={searchText}
             onChangeText={setSearchText}
@@ -141,132 +123,310 @@ export default function ExploreScreen({ onHamburger }: Props) {
         </View>
       </View>
 
-      {/* 3. Categories */}
-      <View style={styles.sectionHeaderWrap}>
-        <SectionHeader label="HOME PROJECTS" title="Browse by Category" />
-      </View>
-
-      {loading ? (
-        <View style={styles.categoryGrid}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <View key={i} style={styles.categoryCard}>
-              <Skeleton height={110} radius={0} />
-              <View style={styles.categoryCardInner}>
-                <Skeleton height={20} width="70%" />
-                <Skeleton height={14} width="90%" style={{ marginTop: 10 }} />
-              </View>
+      {searching ? (
+        <View style={styles.searchResultsWrap}>
+          {!hasAnyMatches ? (
+            <View style={styles.stateWrap}>
+              <EmptyState title="No matches" subtitle="Try a different search term." />
             </View>
-          ))}
-        </View>
-      ) : error ? (
-        <View style={styles.stateWrap}>
-          <EmptyState
-            title="Couldn't load categories"
-            subtitle="Check your connection and try again."
-          />
-        </View>
-      ) : filteredCategories.length === 0 ? (
-        <View style={styles.stateWrap}>
-          <EmptyState
-            title="No matches"
-            subtitle="Try a different search term."
-          />
+          ) : (
+            <>
+              {matchedCategories.length > 0 && (
+                <View style={styles.resultGroup}>
+                  <Text style={styles.resultGroupLabel}>Spaces</Text>
+                  {matchedCategories.map(cat => (
+                    <AnimatedPressable
+                      key={cat.id}
+                      style={styles.resultRow}
+                      onPress={() => router.push('CategoryDetail', {
+                        name: cat.name,
+                        description: cat.description,
+                        imageUrl: cat.imageUrl,
+                      })}
+                    >
+                      <Image
+                        source={cat.imageUrl ? { uri: cat.imageUrl } : (CATEGORY_FALLBACK_IMAGES[cat.name] || FALLBACK_IMAGE)}
+                        style={styles.resultThumb}
+                        alt={cat.name}
+                      />
+                      <View style={styles.resultTextWrap}>
+                        <Text style={styles.resultTitle}>{cat.name}</Text>
+                        {cat.description ? (
+                          <Text style={styles.resultSubtitle} numberOfLines={1}>{cat.description}</Text>
+                        ) : null}
+                      </View>
+                    </AnimatedPressable>
+                  ))}
+                </View>
+              )}
+
+              {matchedStyles.length > 0 && (
+                <View style={styles.resultGroup}>
+                  <Text style={styles.resultGroupLabel}>Styles</Text>
+                  {matchedStyles.map(style => (
+                    <AnimatedPressable
+                      key={style}
+                      style={styles.resultRow}
+                      onPress={() => router.push('StyleDetail', { name: style })}
+                    >
+                      <Image source={getStyleImage(style)} style={styles.resultThumb} alt={style} />
+                      <View style={styles.resultTextWrap}>
+                        <Text style={styles.resultTitle}>{style}</Text>
+                        <Text style={styles.resultSubtitle}>Browse by style</Text>
+                      </View>
+                    </AnimatedPressable>
+                  ))}
+                </View>
+              )}
+
+              {matchedProjects.length > 0 && (
+                <View style={styles.resultGroup}>
+                  <Text style={styles.resultGroupLabel}>Projects</Text>
+                  {matchedProjects.map(project => (
+                    <AnimatedPressable
+                      key={project.id}
+                      style={styles.resultRow}
+                      onPress={() => router.push('PopularProjectDetail', { id: project.id })}
+                    >
+                      <Image source={project.image} style={styles.resultThumb} alt={project.title} />
+                      <View style={styles.resultTextWrap}>
+                        <Text style={styles.resultTitle}>{project.title}</Text>
+                        <Text style={styles.resultSubtitle} numberOfLines={1}>{project.categoryTag} · {project.styleTag}</Text>
+                      </View>
+                    </AnimatedPressable>
+                  ))}
+                </View>
+              )}
+
+              {matchedInspiration.length > 0 && (
+                <View style={styles.resultGroup}>
+                  <Text style={styles.resultGroupLabel}>Inspiration</Text>
+                  {matchedInspiration.map(item => (
+                    <AnimatedPressable
+                      key={item.id}
+                      style={styles.resultRow}
+                      onPress={() => router.push('InspirationDetail', { id: item.id })}
+                    >
+                      <Image source={item.image} style={styles.resultThumb} alt={item.title} />
+                      <View style={styles.resultTextWrap}>
+                        <Text style={styles.resultTitle}>{item.title}</Text>
+                        <Text style={styles.resultSubtitle} numberOfLines={1}>{item.styleTag}</Text>
+                      </View>
+                    </AnimatedPressable>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
         </View>
       ) : (
-        <View style={styles.categoryGrid}>
-          {filteredCategories.map((cat, i) => (
-            <FadeInUp key={cat.id} delay={i * 40} style={styles.categoryCard}>
-              <AnimatedPressable onPress={() => router.push('StartProject')}>
-                <Image
-                  source={cat.imageUrl ? { uri: cat.imageUrl } : (CATEGORY_FALLBACK_IMAGES[cat.name] || FALLBACK_IMAGE)}
-                  style={styles.categoryImage}
-                  alt={cat.name}
-                />
-                <View style={styles.categoryCardInner}>
-                  <Text style={styles.categoryName}>{cat.name}</Text>
-                  {cat.description ? (
-                    <Text style={styles.categoryDescription} numberOfLines={3}>{cat.description}</Text>
-                  ) : null}
+        <>
+          {/* 3. Categories */}
+          <View style={styles.sectionHeaderWrap}>
+            <SectionHeader label="HOME PROJECTS" title="Browse by Category" />
+          </View>
+
+          {loading ? (
+            <View style={styles.categoryGrid}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <View key={i} style={styles.categoryCard}>
+                  <Skeleton height={110} radius={0} />
+                  <View style={styles.categoryCardInner}>
+                    <Skeleton height={20} width="70%" />
+                    <Skeleton height={14} width="90%" style={{ marginTop: 10 }} />
+                  </View>
                 </View>
-              </AnimatedPressable>
-            </FadeInUp>
-          ))}
-        </View>
+              ))}
+            </View>
+          ) : error ? (
+            <View style={styles.stateWrap}>
+              <EmptyState
+                title="Couldn't load categories"
+                subtitle="Check your connection and try again."
+              />
+            </View>
+          ) : categories.length === 0 ? (
+            <View style={styles.stateWrap}>
+              <EmptyState
+                title="No categories yet"
+                subtitle="Check back soon."
+              />
+            </View>
+          ) : (
+            <View style={styles.categoryGrid}>
+              {categories.map((cat, i) => (
+                <FadeInUp key={cat.id} delay={i * 40} style={styles.categoryCard}>
+                  <AnimatedPressable
+                    onPress={() => router.push('CategoryDetail', {
+                      name: cat.name,
+                      description: cat.description,
+                      imageUrl: cat.imageUrl,
+                    })}
+                  >
+                    <Image
+                      source={cat.imageUrl ? { uri: cat.imageUrl } : (CATEGORY_FALLBACK_IMAGES[cat.name] || FALLBACK_IMAGE)}
+                      style={styles.categoryImage}
+                      alt={cat.name}
+                    />
+                    <View style={styles.categoryCardInner}>
+                      <Text style={styles.categoryName}>{cat.name}</Text>
+                      {cat.description ? (
+                        <Text style={styles.categoryDescription} numberOfLines={3}>{cat.description}</Text>
+                      ) : null}
+                    </View>
+                  </AnimatedPressable>
+                </FadeInUp>
+              ))}
+            </View>
+          )}
+
+          {/* Featured Project */}
+          <FadeInUp>
+            <AnimatedPressable
+              style={styles.featuredCard}
+              onPress={() => router.push('PopularProjectDetail', { id: FEATURED_PROJECT.id })}
+            >
+              <Image source={FEATURED_PROJECT.image} style={styles.featuredImage} alt={FEATURED_PROJECT.title} />
+              <View style={styles.featuredBody}>
+                <Text style={styles.featuredTag}>{FEATURED_PROJECT.categoryTag} · {FEATURED_PROJECT.styleTag}</Text>
+                <Text style={styles.featuredTitle}>{FEATURED_PROJECT.title}</Text>
+                <Text style={styles.featuredExcerpt} numberOfLines={3}>{FEATURED_PROJECT.longDescription}</Text>
+              </View>
+            </AnimatedPressable>
+          </FadeInUp>
+
+          {/* 4. Popular Projects */}
+          <View style={styles.sectionHeaderWrap}>
+            <SectionHeader label="TRENDING" title="Popular Projects" />
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.projectCarousel}
+          >
+            {POPULAR_PROJECTS.map((project, i) => (
+              <FadeInUp key={project.id} delay={i * 40}>
+                <PopularProjectCard
+                  image={project.image}
+                  title={project.title}
+                  category={project.category}
+                  description={project.description}
+                  onPress={() => router.push('PopularProjectDetail', { id: project.id })}
+                />
+              </FadeInUp>
+            ))}
+          </ScrollView>
+
+          {/* 5. Browse by Style */}
+          <View style={[styles.sectionHeaderWrap, { marginTop: spacing.section }]}>
+            <SectionHeader label="DISCOVER" title="Browse by Style" />
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.styleCarousel}
+          >
+            {ALL_STYLES.map((style, i) => (
+              <FadeInUp key={style} delay={i * 40}>
+                <AnimatedPressable
+                  style={styles.styleCard}
+                  onPress={() => router.push('StyleDetail', { name: style })}
+                >
+                  <Image source={getStyleImage(style)} style={styles.styleCardImage} alt={style} />
+                  <View style={styles.styleCardGrad} />
+                  <Text style={styles.styleCardTitle}>{style}</Text>
+                </AnimatedPressable>
+              </FadeInUp>
+            ))}
+          </ScrollView>
+
+          {/* 6. Inspiration for Your Space */}
+          <View style={[styles.sectionHeaderWrap, { marginTop: spacing.section }]}>
+            <SectionHeader label="EDITORIAL" title="Inspiration for Your Space" />
+          </View>
+          <View style={styles.inspirationGrid}>
+            <View style={styles.inspirationColumn}>
+              {INSPIRATION_GRID.filter((_, i) => i % 2 === 0).map((item, i) => (
+                <FadeInUp key={item.id} delay={i * 80}>
+                  <AnimatedPressable
+                    onPress={() => router.push('InspirationDetail', { id: item.id })}
+                    style={[styles.inspirationTile, { height: item.tall ? 220 : 150 }]}
+                  >
+                    <Image source={item.image} style={styles.inspirationImage} alt={item.title} />
+                    <View style={styles.inspirationGrad} />
+                    <Text style={styles.inspirationTitle}>{item.title}</Text>
+                  </AnimatedPressable>
+                </FadeInUp>
+              ))}
+            </View>
+            <View style={styles.inspirationColumn}>
+              {INSPIRATION_GRID.filter((_, i) => i % 2 === 1).map((item, i) => (
+                <FadeInUp key={item.id} delay={i * 80 + 40}>
+                  <AnimatedPressable
+                    onPress={() => router.push('InspirationDetail', { id: item.id })}
+                    style={[styles.inspirationTile, { height: item.tall ? 220 : 150 }]}
+                  >
+                    <Image source={item.image} style={styles.inspirationImage} alt={item.title} />
+                    <View style={styles.inspirationGrad} />
+                    <Text style={styles.inspirationTitle}>{item.title}</Text>
+                  </AnimatedPressable>
+                </FadeInUp>
+              ))}
+            </View>
+          </View>
+
+          {/* Design Details */}
+          <View style={[styles.sectionHeaderWrap, { marginTop: spacing.section }]}>
+            <SectionHeader label="GUIDES" title="Design Details" />
+          </View>
+          <View style={styles.designDetailsGrid}>
+            {EXPLORE_DESIGN_DETAILS.map((d, i) => (
+              <FadeInUp key={d.id} delay={i * 40} style={styles.designDetailItem}>
+                <GalleryTile
+                  image={d.image}
+                  title={d.title}
+                  caption={d.caption}
+                  size="sm"
+                  onPress={() => router.push(d.linkScreen, d.linkParam)}
+                />
+              </FadeInUp>
+            ))}
+          </View>
+
+          {/* More to Explore */}
+          <View style={[styles.sectionHeaderWrap, { marginTop: spacing.section }]}>
+            <SectionHeader label="KEEP BROWSING" title="More to Explore" />
+          </View>
+          <View style={styles.moreToExploreList}>
+            {MORE_TO_EXPLORE.map((name, i) => {
+              const cat = categories.find(c => c.name === name)
+              return (
+                <FadeInUp key={name} delay={i * 40}>
+                  <AnimatedPressable
+                    style={styles.moreToExploreRow}
+                    onPress={() => router.push('CategoryDetail', cat
+                      ? { name: cat.name, description: cat.description, imageUrl: cat.imageUrl }
+                      : { name }
+                    )}
+                  >
+                    <Text style={styles.moreToExploreText}>{name}</Text>
+                    <Text style={styles.moreToExploreArrow}>→</Text>
+                  </AnimatedPressable>
+                </FadeInUp>
+              )
+            })}
+          </View>
+        </>
       )}
 
-      {/* 4. Popular Projects */}
-      <View style={styles.sectionHeaderWrap}>
-        <SectionHeader label="TRENDING" title="Popular Projects" />
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.projectCarousel}
-      >
-        {POPULAR_PROJECTS.map((project, i) => (
-          <FadeInUp key={project.id} delay={i * 40}>
-            <PopularProjectCard
-              image={project.image}
-              title={project.title}
-              category={project.category}
-              description={project.description}
-              onPress={() => router.push('StartProject')}
-            />
-          </FadeInUp>
-        ))}
-      </ScrollView>
-
-      {/* 5. Inspiration for Your Space */}
-      <View style={[styles.sectionHeaderWrap, { marginTop: spacing.section }]}>
-        <SectionHeader label="EDITORIAL" title="Inspiration for Your Space" />
-      </View>
-      <View style={styles.inspirationGrid}>
-        <View style={styles.inspirationColumn}>
-          {INSPIRATION_GRID.filter((_, i) => i % 2 === 0).map(item => (
-            <AnimatedPressable
-              key={item.id}
-              onPress={() => router.push('StartProject')}
-              style={[styles.inspirationTile, { height: item.tall ? 220 : 150 }]}
-            >
-              <Image source={item.image} style={styles.inspirationImage} alt={item.title} />
-              <View style={styles.inspirationGrad} />
-              <Text style={styles.inspirationTitle}>{item.title}</Text>
-            </AnimatedPressable>
-          ))}
-        </View>
-        <View style={styles.inspirationColumn}>
-          {INSPIRATION_GRID.filter((_, i) => i % 2 === 1).map(item => (
-            <AnimatedPressable
-              key={item.id}
-              onPress={() => router.push('StartProject')}
-              style={[styles.inspirationTile, { height: item.tall ? 220 : 150 }]}
-            >
-              <Image source={item.image} style={styles.inspirationImage} alt={item.title} />
-              <View style={styles.inspirationGrad} />
-              <Text style={styles.inspirationTitle}>{item.title}</Text>
-            </AnimatedPressable>
-          ))}
-        </View>
-      </View>
-
-      {/* 6. What are you looking to design? */}
-      <View style={[styles.section, { marginTop: spacing.section }]}>
-        <SectionHeader label="GET STARTED" title="What are you looking to design?" />
-        <View style={styles.intentChips}>
-          {DESIGN_INTENTS.map(intent => (
-            <Chip key={intent} label={intent} onPress={() => router.push('StartProject')} />
-          ))}
-        </View>
-      </View>
-
       {/* 7. Start Your Project CTA */}
-      <View style={styles.ctaBand}>
+      <FadeInUp style={styles.ctaBand}>
         <Text style={styles.ctaTitle}>Start Your Project</Text>
         <Text style={styles.ctaSubtitle}>Tell us what you need and we'll help bring it to life.</Text>
         <AnimatedPressable style={styles.ctaButton} onPress={() => router.push('StartProject')}>
           <Text style={styles.ctaButtonText}>Start Your Project →</Text>
         </AnimatedPressable>
-      </View>
+      </FadeInUp>
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
@@ -321,6 +481,55 @@ const styles = StyleSheet.create({
     minHeight: 160,
   },
 
+  // Search results
+  searchResultsWrap: {
+    paddingHorizontal: spacing.xl,
+    gap: spacing.section,
+  },
+  resultGroup: {
+    gap: spacing.sm,
+  },
+  resultGroupLabel: {
+    fontSize: fontSize.label,
+    fontFamily: fonts.body,
+    color: colors.darkText,
+    fontWeight: fontWeight.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: spacing.xs,
+  },
+  resultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.cardBg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    padding: spacing.sm,
+  },
+  resultThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: radii.sm,
+    resizeMode: 'cover',
+  },
+  resultTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  resultTitle: {
+    fontSize: fontSize.label,
+    fontFamily: fonts.heading,
+    color: colors.darkText,
+    fontWeight: fontWeight.semibold,
+  },
+  resultSubtitle: {
+    fontSize: fontSize.caption,
+    fontFamily: fonts.body,
+    color: colors.mutedText,
+  },
+
   // Categories
   categoryGrid: {
     flexDirection: 'row',
@@ -362,15 +571,90 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Generic section wrap (non-carousel)
-  section: {
-    paddingHorizontal: spacing.xl,
+  // Featured Project
+  featuredCard: {
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.section,
+    backgroundColor: colors.cardBg,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    ...shadows.sm,
+  },
+  featuredImage: {
+    width: '100%',
+    height: 200,
+    resizeMode: 'cover',
+  },
+  featuredBody: {
+    padding: spacing.lg,
+    gap: 6,
+  },
+  featuredTag: {
+    fontSize: fontSize.caption,
+    fontFamily: fonts.body,
+    color: colors.mutedText,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontWeight: fontWeight.medium,
+  },
+  featuredTitle: {
+    fontSize: fontSize.h3,
+    fontFamily: fonts.heading,
+    color: colors.darkText,
+    fontWeight: fontWeight.bold,
+  },
+  featuredExcerpt: {
+    fontSize: fontSize.body,
+    fontFamily: fonts.body,
+    color: colors.mutedText,
+    lineHeight: 22,
   },
 
   // Popular Projects
   projectCarousel: {
     paddingHorizontal: spacing.xl,
     gap: 12,
+  },
+
+  // Browse by Style
+  styleCarousel: {
+    paddingHorizontal: spacing.xl,
+    gap: 12,
+  },
+  styleCard: {
+    width: 110,
+    height: 140,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    position: 'relative',
+    justifyContent: 'flex-end',
+  },
+  styleCardImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  styleCardGrad: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 50,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  styleCardTitle: {
+    fontFamily: fonts.heading,
+    fontSize: fontSize.caption,
+    color: colors.white,
+    fontWeight: fontWeight.semibold,
+    padding: 10,
   },
 
   // Inspiration editorial grid
@@ -415,12 +699,44 @@ const styles = StyleSheet.create({
     padding: 12,
   },
 
-  // What are you looking to design?
-  intentChips: {
+  // Design Details
+  designDetailsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginTop: spacing.lg,
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: spacing.xl,
+  },
+  designDetailItem: {
+    width: '48%',
+  },
+
+  // More to Explore
+  moreToExploreList: {
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+  },
+  moreToExploreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.cardBg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
+  moreToExploreText: {
+    fontSize: fontSize.label,
+    fontFamily: fonts.heading,
+    color: colors.darkText,
+    fontWeight: fontWeight.semibold,
+  },
+  moreToExploreArrow: {
+    fontSize: fontSize.label,
+    fontFamily: fonts.body,
+    color: colors.mutedText,
   },
 
   // Start Your Project CTA

@@ -11,6 +11,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fonts, fontSize, spacing, radii, fontWeight, shadows } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 import { useAuth } from '../context/AuthContext'
@@ -115,6 +116,7 @@ const INSP_H = 240
 export default function HomeScreen({ onHamburger }: Props) {
   const router = useRouter()
   const auth = useAuth()
+  const insets = useSafeAreaInsets()
   const firstName = auth.user?.fullName?.split(' ')[0]
   const avatarInitial = auth.user?.fullName?.trim()?.[0]?.toUpperCase()
   const carouselRef = useRef<any>(null)
@@ -158,7 +160,7 @@ export default function HomeScreen({ onHamburger }: Props) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.page}>
 
         {/* ── Header ──────────────────────────────────── */}
-        <View style={s.header}>
+        <View style={[s.header, { paddingTop: insets.top + 10 }]}>
           <Pressable onPress={onHamburger} style={s.menuBtn}>
             <Text style={s.menuIcon}>☰</Text>
           </Pressable>
@@ -198,11 +200,11 @@ export default function HomeScreen({ onHamburger }: Props) {
           <Pressable style={s.activeCard} onPress={() => router.push('ProjectDetail', { id: String(activeBooking.id) })}>
             <Text style={s.activeLabel}>● ACTIVE PROJECT</Text>
             <Text style={s.activeTitle}>
-              {activeBooking.categoryName || activeBooking.portfolioItemTitle || 'Your Project'}
+              {activeBooking.categoryName || activeBooking.portfolioItem?.title || 'Your Project'}
             </Text>
             <View style={s.progressRow}>
               <Text style={s.progressPct}>
-                {activeBooking.professionalName ? `Assigned to ${activeBooking.professionalName}` : 'Awaiting assignment'}
+                {activeBooking.professional ? `Assigned to ${activeBooking.professional.fullName}` : 'Awaiting assignment'}
               </Text>
               <Text style={s.viewProgress}>View Details →</Text>
             </View>
@@ -337,8 +339,8 @@ export default function HomeScreen({ onHamburger }: Props) {
           <Text style={s.supportTitle}>Still have questions?</Text>
           <Text style={s.supportSub}>Our team is available Monday–Saturday, 9am–7pm.</Text>
           <View style={s.supportBtns}>
-            <PrimaryButton label="Call Us" onPress={() => Linking.openURL('tel:+919876543210')} style={s.supportBtn} />
-            <SecondaryButton label="WhatsApp" onPress={() => Linking.openURL('https://wa.me/919876543210')} style={s.supportBtn} />
+            <PrimaryButton label="Call Us" onPress={() => Linking.openURL('tel:+918210827121')} style={s.supportBtn} />
+            <SecondaryButton label="WhatsApp" onPress={() => Linking.openURL('https://wa.me/918210827121')} style={s.supportBtn} />
           </View>
         </View>
 
@@ -360,9 +362,9 @@ const s = StyleSheet.create({
   menuIcon: { fontSize: 20, color: colors.darkText },
   brandName: { fontFamily: fonts.heading, fontSize: 22, fontWeight: fontWeight.bold, color: colors.darkText, letterSpacing: 2 },
   profileBtn: { padding: 4 },
-  avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.darkText, alignItems: 'center', justifyContent: 'center' },
-  avatarTxt: { fontFamily: fonts.heading, fontSize: 14, color: colors.white, fontWeight: fontWeight.semibold },
-  avatarImg: { width: 34, height: 34, borderRadius: 17 },
+  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.cardBg2, alignItems: 'center', justifyContent: 'center' },
+  avatarTxt: { fontFamily: fonts.heading, fontSize: 13, color: colors.mutedText, fontWeight: fontWeight.semibold },
+  avatarImg: { width: 32, height: 32, borderRadius: 16 },
 
   // Hero
   hero: { height: 380, position: 'relative', justifyContent: 'flex-end' },

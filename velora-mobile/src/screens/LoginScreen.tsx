@@ -123,8 +123,8 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: spacing.xl,
-    paddingTop: spacing.xxl,
-    gap: spacing.xl,
+    paddingTop: spacing.lg,
+    gap: spacing.md,
   },
   title: {
     fontSize: fontSize.h2,
@@ -137,10 +137,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     color: colors.mutedText,
     lineHeight: 22,
-    marginTop: -spacing.lg,
   },
   fields: {
-    gap: spacing.lg,
+    gap: spacing.sm,
   },
   disclaimer: {
     fontSize: fontSize.caption,
