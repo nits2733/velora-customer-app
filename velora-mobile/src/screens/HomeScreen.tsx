@@ -10,8 +10,10 @@ import {
   FlatList,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  useWindowDimensions,
 } from 'react-native'
-import { colors, fonts, fontSize, spacing, radii, fontWeight, shadows } from '../theme/tokens'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { colors, fonts, fontSize, spacing, radii, fontWeight, shadows, layout } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 import { useAuth } from '../context/AuthContext'
 import { bookingsApi } from '../api/bookings'
@@ -115,8 +117,12 @@ const INSP_H = 240
 export default function HomeScreen({ onHamburger }: Props) {
   const router = useRouter()
   const auth = useAuth()
+  const insets = useSafeAreaInsets()
+  const { width: windowWidth } = useWindowDimensions()
+  // Clamp so the heading scales down on narrow phones without shrinking
+  // past legibility on larger ones.
+  const heroTitleSize = Math.max(26, Math.min(32, windowWidth * 0.082))
   const firstName = auth.user?.fullName?.split(' ')[0]
-  const avatarInitial = auth.user?.fullName?.trim()?.[0]?.toUpperCase()
   const carouselRef = useRef<any>(null)
   const [scrollX, setScrollX] = useState(0)
   const [paused, setPaused] = useState(false)
@@ -155,33 +161,31 @@ export default function HomeScreen({ onHamburger }: Props) {
 
   return (
     <View style={s.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.page}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          s.page,
+          { paddingBottom: insets.bottom + layout.bottomNavHeight + spacing.xxl },
+        ]}
+      >
 
         {/* ── Header ──────────────────────────────────── */}
-        <View style={s.header}>
-          <Pressable onPress={onHamburger} style={s.menuBtn}>
-            <Text style={s.menuIcon}>☰</Text>
-          </Pressable>
-          <Text style={s.brandName}>VELORA</Text>
-          <Pressable onPress={() => router.push('Profile')} style={s.profileBtn} accessibilityLabel="Profile">
-            {auth.avatarUrl ? (
-              <Image source={{ uri: auth.avatarUrl }} style={s.avatarImg} alt="Profile" />
-            ) : (
-              <View style={s.avatar}>
-                <Text style={s.avatarTxt}>{avatarInitial || '👤'}</Text>
-              </View>
-            )}
-          </Pressable>
-        </View>
+        <AppHeader onHamburger={onHamburger} />
 
         {/* ── Hero ────────────────────────────────────── */}
         <View style={s.hero}>
           <Image source={ImgHero} style={s.heroImg} />
-          <View style={s.heroGrad} />
+          {/* Layered overlay (not a flat scrim) so the image still reads as
+              premium while the bottom band - where the text sits - stays
+              reliably readable regardless of the photo underneath. */}
+          <View style={s.heroGradTop} />
+          <View style={s.heroGradBottom} />
           <View style={s.heroContent}>
             <Text style={s.heroGreeting}>{firstName ? `Hi, ${firstName}` : 'Hi there'}</Text>
-            <Text style={s.heroTitle}>Design the home{'\n'}you want to live in.</Text>
-            <Text style={s.heroSub}>From complete home transformations{'\n'}to the service you need today.</Text>
+            <Text style={[s.heroTitle, { fontSize: heroTitleSize, lineHeight: heroTitleSize * 1.2 }]}>
+              Design the home{'\n'}you want to live in.
+            </Text>
+            <Text style={s.heroSub}>Tell us what you need - we'll take care of the rest.</Text>
             <View style={s.heroBtns}>
               <Pressable style={s.heroBtn} onPress={() => router.push('StartProject')}>
                 <Text style={s.heroBtnTxt}>Start a Full Home Project</Text>
@@ -354,28 +358,23 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   page: { paddingBottom: 16 },
 
-  // Header
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xl, paddingTop: 14, paddingBottom: 10 },
-  menuBtn: { padding: 4 },
-  menuIcon: { fontSize: 20, color: colors.darkText },
-  brandName: { fontFamily: fonts.heading, fontSize: 22, fontWeight: fontWeight.bold, color: colors.darkText, letterSpacing: 2 },
-  profileBtn: { padding: 4 },
-  avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.darkText, alignItems: 'center', justifyContent: 'center' },
-  avatarTxt: { fontFamily: fonts.heading, fontSize: 14, color: colors.white, fontWeight: fontWeight.semibold },
-  avatarImg: { width: 34, height: 34, borderRadius: 17 },
-
   // Hero
-  hero: { height: 380, position: 'relative', justifyContent: 'flex-end' },
+  hero: { height: 320, position: 'relative', justifyContent: 'flex-end' },
   heroImg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', resizeMode: 'cover' },
-  heroGrad: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' },
+  // Two bands instead of one flat scrim: near-transparent up top so the
+  // photo still reads clearly, much darker toward the bottom where the
+  // heading/buttons sit, so text contrast never depends on what happens
+  // to be behind it in that particular photo.
+  heroGradTop: { position: 'absolute', top: 0, left: 0, right: 0, height: '55%', backgroundColor: 'rgba(0,0,0,0.15)' },
+  heroGradBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '65%', backgroundColor: 'rgba(0,0,0,0.6)' },
   heroContent: { padding: spacing.xl, gap: 6 },
   heroGreeting: { fontFamily: fonts.body, fontSize: fontSize.label, color: 'rgba(255,255,255,0.8)', letterSpacing: 0.5 },
-  heroTitle: { fontFamily: fonts.heading, fontSize: 34, color: colors.white, fontWeight: fontWeight.semibold, lineHeight: 42 },
-  heroSub: { fontFamily: fonts.body, fontSize: 15, color: 'rgba(255,255,255,0.85)', lineHeight: 22, marginBottom: 8 },
-  heroBtns: { gap: 10 },
-  heroBtn: { backgroundColor: colors.black, paddingVertical: 14, alignItems: 'center', borderRadius: radii.md },
+  heroTitle: { fontFamily: fonts.heading, color: colors.white, fontWeight: fontWeight.semibold },
+  heroSub: { fontFamily: fonts.body, fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 20, marginBottom: 6 },
+  heroBtns: { gap: 8 },
+  heroBtn: { backgroundColor: colors.black, paddingVertical: 12, alignItems: 'center', borderRadius: radii.md, width: '100%' },
   heroBtnTxt: { fontFamily: fonts.body, fontSize: fontSize.label, color: colors.white, fontWeight: fontWeight.semibold, letterSpacing: 0.7 },
-  heroBtnOutline: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', paddingVertical: 14, alignItems: 'center', borderRadius: radii.md, backgroundColor: 'rgba(255,255,255,0.1)' },
+  heroBtnOutline: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', paddingVertical: 12, alignItems: 'center', borderRadius: radii.md, backgroundColor: 'rgba(255,255,255,0.1)', width: '100%' },
   heroBtnOutlineTxt: { fontFamily: fonts.body, fontSize: fontSize.label, color: colors.white, fontWeight: fontWeight.semibold, letterSpacing: 0.7 },
 
   // Active project
@@ -387,8 +386,8 @@ const s = StyleSheet.create({
   viewProgress: { fontFamily: fonts.body, fontSize: fontSize.caption, color: colors.darkText, fontWeight: fontWeight.semibold },
 
   // Sections
-  section: { paddingHorizontal: spacing.xl, paddingTop: spacing.section },
-  sectionHead: { marginBottom: spacing.lg },
+  section: { paddingHorizontal: spacing.xl, paddingTop: spacing.xxl },
+  sectionHead: { marginBottom: spacing.md },
   sectionHead2: { paddingHorizontal: spacing.xl, marginBottom: spacing.lg },
   sectionLabel: { fontFamily: fonts.body, fontSize: 10, color: colors.mutedText, letterSpacing: 1.2, textTransform: 'uppercase', fontWeight: fontWeight.medium, marginBottom: 6 },
   sectionTitle: { fontFamily: fonts.heading, fontSize: 28, color: colors.darkText, fontWeight: fontWeight.semibold, lineHeight: 36 },
