@@ -1,6 +1,5 @@
 import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fonts, fontSize, spacing } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 import { useAuth } from '../context/AuthContext'
@@ -18,9 +17,8 @@ type Props = {
 export default function AppHeader({ title, greeting, showBack, onBack, onHamburger, showHamburger = true }: Props) {
   const router = useRouter()
   const auth = useAuth()
-  const insets = useSafeAreaInsets()
   return (
-    <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
+    <View style={styles.container}>
       <View style={styles.left}>
         {showBack ? (
           <Pressable onPress={onBack} style={styles.iconBtn} accessibilityLabel="Go back">
@@ -54,11 +52,10 @@ export default function AppHeader({ title, greeting, showBack, onBack, onHamburg
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 56,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.sm,
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
