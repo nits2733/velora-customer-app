@@ -61,8 +61,14 @@ const tabs: { key: Tab; label: string; Icon: (p: { color: string }) => React.Rea
 export default function BottomNav({ activeTab, onTabPress }: Props) {
   const insets = useSafeAreaInsets()
 
+  // Additive, not just a floor: on Android's edge-to-edge gesture nav the
+  // reported inset can be small-but-nonzero, and a bare `Math.max(inset, N)`
+  // then leaves zero breathing room between the pill and the system bar -
+  // reads as "clipped" even though nothing is technically cut off.
+  const bottomInset = Math.max(insets.bottom, 12) + 12
+
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+    <View style={[styles.wrap, { paddingBottom: bottomInset }]} pointerEvents="box-none">
       <View style={styles.container}>
         {tabs.map(({ key, label, Icon }) => {
           const active = activeTab === key
@@ -78,7 +84,7 @@ export default function BottomNav({ activeTab, onTabPress }: Props) {
                 <View style={active ? styles.iconBadgeActive : styles.iconBadge}>
                   <Icon color={active ? colors.white : colors.mutedText} />
                 </View>
-                <Text style={[styles.label, active && styles.activeLabel]}>{label}</Text>
+                <Text style={[styles.label, active && styles.activeLabel]} numberOfLines={1}>{label}</Text>
               </View>
             </AnimatedPressable>
           )
@@ -96,15 +102,21 @@ const styles = StyleSheet.create({
   },
   container: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.cardBg2,
     borderRadius: radii.xxl,
-    paddingTop: 6,
-    paddingBottom: 8,
-    paddingHorizontal: 6,
+    // Explicit minHeight, generous vertical padding: the icon badge (40) plus
+    // label plus padding must never be taller than the pill itself, or the
+    // badge visually pokes out past the rounded bottom edge.
+    minHeight: 68,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     ...shadows.lg,
   },
   tab: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 4,
     borderRadius: radii.xl,
   },
