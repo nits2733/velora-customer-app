@@ -2,13 +2,13 @@ import type { ExpoConfig } from 'expo/config'
 
 // Backend has no dev proxy on native — point this at the deployed backend
 // (or override per-build with EXPO_PUBLIC_API_BASE_URL).
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.velora.example.com'
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8080'
 
 // Google OAuth client IDs (Google Cloud Console -> Credentials). Each
 // platform needs its own client ID; the web one must match the backend's
 // GOOGLE_CLIENT_ID env var — that's the audience the backend verifies the
 // ID token against. Unset in dev until these are registered.
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || ''
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '696407847354-am58or5pj3b06ouj6cp08qupik6h6mi2.apps.googleusercontent.com'
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || ''
 const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || ''
 

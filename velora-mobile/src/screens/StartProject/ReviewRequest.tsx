@@ -10,11 +10,12 @@ import type { BookingTimeline } from '../../api/types'
 import { computeScheduledAt, timelineLabel } from '../../utils/booking'
 
 const BUDGET_RANGES: Record<string, [number | undefined, number | undefined]> = {
-  'Below ₹5L': [undefined, 500000],
-  '₹5L–₹10L': [500000, 1000000],
-  '₹10L–₹25L': [1000000, 2500000],
-  'Above ₹25L': [2500000, undefined],
-  'Not sure': [undefined, undefined],
+  'Below ₹8L': [undefined, 800000],
+  '₹8L–₹15L': [800000, 1500000],
+  '₹15L–₹30L': [1500000, 3000000],
+  '₹30L–₹50L': [3000000, 5000000],
+  'Above ₹50L': [5000000, undefined],
+  'Need guidance': [undefined, undefined],
 }
 
 export default function ReviewRequest() {
@@ -25,23 +26,42 @@ export default function ReviewRequest() {
   const bedrooms = String(router.getParam('bedrooms') || '')
   const area = String(router.getParam('area') || '')
   const location = String(router.getParam('location') || '')
+  const propertyCondition = String(router.getParam('propertyCondition') || '')
+  const household = String(router.getParam('household') || '')
+  const visionBrief = String(router.getParam('visionBrief') || '')
+  const visionImageUri = String(router.getParam('visionImageUri') || '')
+  const visionGoals: string[] = router.getParam('visionGoals') || []
   const scope = String(router.getParam('scope') || '')
   const style = String(router.getParam('style') || '')
   const rooms: string[] = router.getParam('rooms') || []
+  const workTypes: string[] = router.getParam('workTypes') || []
+  const priorities = String(router.getParam('priorities') || '')
   const budget = String(router.getParam('budget') || '')
+  const budgetFlexibility = String(router.getParam('budgetFlexibility') || '')
   const timeline = (router.getParam('timeline') || 'ONE_TO_THREE_MONTHS') as BookingTimeline
+  const readiness = String(router.getParam('readiness') || '')
+  const possessionDate = String(router.getParam('possessionDate') || '')
+  const decisionPriority = String(router.getParam('decisionPriority') || '')
   const notes = String(router.getParam('notes') || '')
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   const summaryRows = [
-    { label: 'Project', value: [propertyType, bedrooms].filter(Boolean).join(' · ') || 'Not specified' },
+    { label: 'Home', value: [propertyType, bedrooms].filter(Boolean).join(' · ') || 'Not specified' },
     { label: 'Location', value: location || 'Not specified' },
-    { label: 'Area / Scope', value: [area && `${area} sq ft`, scope].filter(Boolean).join(' · ') || 'Not specified' },
-    { label: 'Rooms Included', value: rooms.length > 0 ? rooms.join(', ') : 'Not specified' },
-    { label: 'Style Preference', value: style || 'Not specified' },
-    { label: 'Budget / Timeline', value: [budget, timelineLabel(timeline)].filter(Boolean).join(' · ') || 'Not specified' },
+    { label: 'Property Stage', value: [propertyCondition, household].filter(Boolean).join(' · ') || 'Not specified' },
+    { label: 'Area', value: area ? `${area} sq ft` : 'Not specified' },
+    { label: 'Service Level', value: scope || 'Not specified' },
+    { label: 'Spaces Included', value: rooms.length > 0 ? rooms.join(', ') : 'Not specified' },
+    { label: 'Work Requested', value: workTypes.length > 0 ? workTypes.join(', ') : 'Not specified' },
+    { label: 'Style Direction', value: style || 'Not specified' },
+    { label: 'Non-negotiables', value: priorities || 'Not specified' },
+    { label: 'Budget', value: [budget, budgetFlexibility].filter(Boolean).join(' · ') || 'Not specified' },
+    { label: 'Timeline', value: timelineLabel(timeline) },
+    { label: 'Readiness', value: [readiness, possessionDate && `Possession: ${possessionDate}`].filter(Boolean).join(' · ') || 'Not specified' },
+    { label: 'Top Priority', value: decisionPriority || 'Not specified' },
+    { label: 'Vision Studio', value: visionBrief || 'Not used' },
   ]
 
   const handleSubmit = async () => {
@@ -57,9 +77,19 @@ export default function ReviewRequest() {
     try {
       const composedNotes = [
         propertyType && `Property: ${[propertyType, bedrooms].filter(Boolean).join(', ')}`,
+        propertyCondition && `Property stage: ${propertyCondition}`,
+        household && `Household: ${household}`,
         area && `Area: ${area} sq ft`,
-        scope && `Scope: ${scope}`,
-        rooms.length > 0 && `Rooms: ${rooms.join(', ')}`,
+        scope && `Service level: ${scope}`,
+        rooms.length > 0 && `Spaces: ${rooms.join(', ')}`,
+        workTypes.length > 0 && `Work requested: ${workTypes.join(', ')}`,
+        priorities && `Non-negotiables: ${priorities}`,
+        budgetFlexibility && `Budget flexibility: ${budgetFlexibility}`,
+        readiness && `Readiness: ${readiness}${possessionDate ? ` (possession ${possessionDate})` : ''}`,
+        decisionPriority && `Top priority: ${decisionPriority}`,
+        visionBrief && `Vision Studio concept: ${visionBrief}`,
+        visionGoals.length > 0 && `Vision goals: ${visionGoals.join(', ')}`,
+        visionImageUri && `Room reference image attached in app: ${visionImageUri}`,
         notes && `Notes: ${notes}`,
       ].filter(Boolean).join('\n')
 

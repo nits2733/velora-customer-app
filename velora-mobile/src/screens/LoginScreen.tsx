@@ -38,8 +38,8 @@ export default function LoginScreen() {
         router.push('VerifyOtp', { email: email.trim(), mode: 'register', returnTo, returnParams })
         return
       }
-      setError(e instanceof ApiError && e.status === 401
-        ? 'Incorrect email or password.'
+      setError(e instanceof ApiError
+        ? e.status === 401 ? 'Incorrect email or password.' : e.message
         : 'Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)

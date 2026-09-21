@@ -12,6 +12,7 @@ type RouterContextType = {
   push: (name: string, params?: Record<string, any>) => void
   back: () => void
   replace: (name: string, params?: Record<string, any>) => void
+  updateParams: (params: Record<string, any>) => void
   getParam: (key: string) => any
 }
 
@@ -69,6 +70,13 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     setHistory(prev => [...prev.slice(0, -1), { name, params }])
   }
 
+  const updateParams = (params: Record<string, any>) => {
+    setHistory(prev => {
+      const current = prev[prev.length - 1]
+      return [...prev.slice(0, -1), { ...current, params: { ...current.params, ...params } }]
+    })
+  }
+
   const getParam = (key: string) => currentRoute.params?.[key]
 
   useEffect(() => {
@@ -90,7 +98,7 @@ export function RouterProvider({ children }: { children: ReactNode }) {
   }, [history])
 
   return (
-    <RouterContext.Provider value={{ currentRoute, history, push, back, replace, getParam }}>
+    <RouterContext.Provider value={{ currentRoute, history, push, back, replace, updateParams, getParam }}>
       {children}
     </RouterContext.Provider>
   )

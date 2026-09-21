@@ -43,6 +43,7 @@ export default function GoogleSignInButton({ onSuccess, onError }: Props) {
     googleIosClientId?: string
     googleAndroidClientId?: string
   }
+  const platformClientId = extra.googleIosClientId || extra.googleAndroidClientId
 
   // expo-auth-session throws synchronously at render time (not just on tap)
   // if no client ID is set for the current platform, which would crash the
@@ -50,13 +51,13 @@ export default function GoogleSignInButton({ onSuccess, onError }: Props) {
   // per-platform ids below still take priority once real ones are set —
   // this fallback only keeps the hook from throwing when they're not.
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: 'not-configured.apps.googleusercontent.com',
+    clientId: platformClientId || 'not-configured.apps.googleusercontent.com',
     webClientId: extra.googleWebClientId || undefined,
     iosClientId: extra.googleIosClientId || undefined,
     androidClientId: extra.googleAndroidClientId || undefined,
   })
 
-  const isConfigured = Boolean(extra.googleWebClientId || extra.googleIosClientId || extra.googleAndroidClientId)
+  const isConfigured = Boolean(platformClientId)
 
   useEffect(() => {
     if (!response) return
@@ -82,15 +83,7 @@ export default function GoogleSignInButton({ onSuccess, onError }: Props) {
       auth.login(res.user, res.accessToken, res.refreshToken)
       onSuccess()
     } catch (e) {
-      if (e instanceof ApiError && e.status === 500) {
-        // Only happens if the backend's GOOGLE_CLIENT_ID isn't configured — a deploy issue.
-        onError('Something went wrong. Please try again.')
-      } else if (e instanceof ApiError) {
-        // 401 (e.g. professional account) and 400 both carry a useful message.
-        onError(e.message)
-      } else {
-        onError('Something went wrong. Please try again.')
-      }
+      onError(e instanceof ApiError ? e.message : 'Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -99,7 +92,7 @@ export default function GoogleSignInButton({ onSuccess, onError }: Props) {
   const handlePress = async () => {
     onError('')
     if (!isConfigured) {
-      onError('Google Sign-In is not set up yet. Please try again later.')
+      onError('Google Sign-In needs an Android or iOS OAuth client ID for this app build.')
       return
     }
     try {

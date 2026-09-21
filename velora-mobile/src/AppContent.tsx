@@ -35,6 +35,7 @@ import WorkMapScreen from './screens/WorkMapScreen'
 import MyQuotationsScreen from './screens/MyQuotationsScreen'
 import QuotationDetailScreen from './screens/QuotationDetailScreen'
 import CostCalculatorScreen from './screens/CostCalculatorScreen'
+import VisionStudioScreen from './screens/VisionStudioScreen'
 import LocationsScreen from './screens/LocationsScreen'
 import SupportScreen from './screens/SupportScreen'
 import PrivacyScreen from './screens/PrivacyScreen'
@@ -62,7 +63,7 @@ export default function AppContent() {
   const currentScreen = router.currentRoute.name
 
   const isTabScreen = TAB_SCREENS.includes(currentScreen)
-  const showNavBar = NAV_BAR_SCREENS.includes(currentScreen)
+  const showNavBar = true
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -115,6 +116,8 @@ export default function AppContent() {
         return <QuotationDetailScreen />
       case 'CostCalculator':
         return <CostCalculatorScreen />
+      case 'VisionStudio':
+        return <VisionStudioScreen />
       case 'Locations':
         return <LocationsScreen />
       case 'Support':

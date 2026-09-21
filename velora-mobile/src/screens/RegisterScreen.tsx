@@ -45,8 +45,8 @@ export default function RegisterScreen() {
       })
       router.push('VerifyOtp', { email: email.trim(), mode: 'register', returnTo, returnParams })
     } catch (e) {
-      setError(e instanceof ApiError && e.status === 409
-        ? 'An account with this email already exists.'
+      setError(e instanceof ApiError
+        ? e.status === 409 ? 'An account with this email already exists.' : e.message
         : 'Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)

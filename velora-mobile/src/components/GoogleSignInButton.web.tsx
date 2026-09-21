@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Text, View, StyleSheet } from 'react-native'
 import Constants from 'expo-constants'
 import Svg, { Path } from 'react-native-svg'
+import AnimatedPressable from './AnimatedPressable'
 import { colors, fonts, fontSize, spacing } from '../theme/tokens'
 import { authApi } from '../api/auth'
 import { ApiError } from '../api/client'
@@ -24,11 +25,12 @@ type Props = {
 }
 
 const GIS_SRC = 'https://accounts.google.com/gsi/client'
+const DEVELOPMENT_WEB_CLIENT_ID = '696407847354-am58or5pj3b06ouj6cp08qupik6h6mi2.apps.googleusercontent.com'
 
 let gisLoadPromise: Promise<void> | null = null
-function loadGis(): Promise<void> {
-  const w = window as any
-  if (w.google?.accounts?.id) return Promise.resolve()
+function loadGoogleIdentityServices(): Promise<void> {
+  const google = (window as any).google
+  if (google?.accounts?.id) return Promise.resolve()
   if (!gisLoadPromise) {
     gisLoadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script')
@@ -36,35 +38,23 @@ function loadGis(): Promise<void> {
       script.async = true
       script.defer = true
       script.onload = () => resolve()
-      script.onerror = () => reject(new Error('Failed to load accounts.google.com/gsi/client'))
+      script.onerror = () => reject(new Error('Google Identity Services failed to load'))
       document.head.appendChild(script)
     })
   }
   return gisLoadPromise
 }
 
-// Web build: Google Identity Services' JS SDK, not expo-auth-session. GIS
-// hands back the ID token through a JS callback (google.accounts.id
-// initialize/renderButton) — there's no OAuth redirect step, so unlike
-// AuthSession's browser-redirect flow it can't hit redirect_uri_mismatch;
-// the only Google Cloud Console config it needs is the origin already
-// registered under "Authorized JavaScript origins".
-//
-// Google's own renderButton draws the actual clickable element (its box
-// can't be freely restyled — it's an iframe), so we render it invisible
-// and stacked on top of our themed button underneath, which forwards the
-// click through to it. This keeps this app's exact button design while
-// still using Google's real, compliant sign-in element as what's actually
-// clicked.
 export default function GoogleSignInButton({ onSuccess, onError }: Props) {
   const auth = useAuth()
   const containerRef = useRef<View>(null)
   const renderedWidthRef = useRef(0)
   const [submitting, setSubmitting] = useState(false)
+
+  const configuredClientId = (Constants.expoConfig?.extra as { googleWebClientId?: string } | undefined)?.googleWebClientId
+  const clientId = configuredClientId || DEVELOPMENT_WEB_CLIENT_ID
   const [ready, setReady] = useState(false)
   const [width, setWidth] = useState(0)
-
-  const clientId = (Constants.expoConfig?.extra as { googleWebClientId?: string } | undefined)?.googleWebClientId
 
   const exchangeToken = async (idToken: string) => {
     setSubmitting(true)
@@ -73,82 +63,58 @@ export default function GoogleSignInButton({ onSuccess, onError }: Props) {
       auth.login(res.user, res.accessToken, res.refreshToken)
       onSuccess()
     } catch (e) {
-      if (e instanceof ApiError && e.status === 500) {
-        // Only happens if the backend's GOOGLE_CLIENT_ID isn't configured — a deploy issue.
-        onError('Something went wrong. Please try again.')
-      } else if (e instanceof ApiError) {
-        // 401 (e.g. professional account) and 400 both carry a useful message.
-        onError(e.message)
-      } else {
-        onError('Something went wrong. Please try again.')
-      }
+      onError(e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Google Sign-In could not reach Velora.')
     } finally {
       setSubmitting(false)
     }
   }
 
   useEffect(() => {
-    if (!clientId || width <= 0 || width === renderedWidthRef.current) return
-    const node = containerRef.current as unknown as HTMLElement | null
-    if (!node) return
-
     let cancelled = false
-    loadGis()
+    loadGoogleIdentityServices()
       .then(() => {
         if (cancelled) return
         const google = (window as any).google
         google.accounts.id.initialize({
           client_id: clientId,
           callback: (response: { credential?: string }) => {
-            if (!response?.credential) {
-              onError('Google Sign-In did not return a token. Please try again.')
-              return
-            }
-            exchangeToken(response.credential)
+            if (response?.credential) exchangeToken(response.credential)
+            else onError('Google Sign-In did not return a token. Please try again.')
           },
         })
+        const node = containerRef.current as unknown as HTMLElement | null
+        if (!node || width <= 0 || width === renderedWidthRef.current) return
         node.innerHTML = ''
         google.accounts.id.renderButton(node, {
           type: 'standard',
           theme: 'outline',
           size: 'large',
           text: 'continue_with',
-          width: Math.min(Math.round(width), 400),
+          width: Math.round(width),
         })
         renderedWidthRef.current = width
         setReady(true)
       })
       .catch(() => {
-        if (!cancelled) onError('Google Sign-In failed to load. Please try again.')
+        if (!cancelled) onError('Google Sign-In could not load. Check your connection and try again.')
       })
-
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId, width])
 
   return (
-    <View
-      style={styles.wrap}
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-    >
-      <View pointerEvents="none" style={styles.btn}>
+    <View style={styles.wrap} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
+      <AnimatedPressable style={({ pressed }: { pressed: boolean }) => [styles.btn, pressed && styles.pressed]} disabled>
         <GoogleLogo />
-        <Text style={styles.label}>
-          {submitting ? 'Signing in…' : !clientId ? 'Google Sign-In is not set up yet' : 'Continue with Google'}
-        </Text>
-      </View>
-      {/* The real, clickable Google button — invisible, stacked on top so every click reaches it. */}
-      <View ref={containerRef} style={[styles.overlay, (!clientId || !ready) && styles.overlayInert]} />
+        <Text style={styles.label}>{submitting ? 'Signing in…' : 'Continue with Google'}</Text>
+      </AnimatedPressable>
+      <View ref={containerRef} style={[styles.overlay, (!ready || submitting) && styles.overlayInert]} />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    position: 'relative',
-  },
+  wrap: { position: 'relative' },
   btn: {
     backgroundColor: colors.white,
     borderWidth: 1,
@@ -161,18 +127,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0,
-    overflow: 'hidden',
-  } as any,
-  overlayInert: {
-    pointerEvents: 'none',
-  } as any,
+  pressed: { backgroundColor: colors.cardBg },
+  overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, opacity: 0, overflow: 'hidden', zIndex: 2, minHeight: 52 } as any,
+  overlayInert: { pointerEvents: 'none' } as any,
   label: {
     color: colors.darkText,
     fontSize: fontSize.body,

@@ -191,6 +191,9 @@ export default function HomeScreen({ onHamburger }: Props) {
               <Pressable style={s.heroBtnOutline} onPress={() => router.replace('Services')}>
                 <Text style={s.heroBtnOutlineTxt}>Book a Service</Text>
               </Pressable>
+              <Pressable style={s.visionBtn} onPress={() => router.push('VisionStudio')}>
+                <Text style={s.visionBtnTxt}>Open Vision Studio</Text>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -379,6 +382,8 @@ const s = StyleSheet.create({
   heroBtnTxt: { fontFamily: fonts.body, fontSize: fontSize.label, color: colors.white, fontWeight: fontWeight.semibold, letterSpacing: 0.7 },
   heroBtnOutline: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', paddingVertical: 14, alignItems: 'center', borderRadius: radii.md, backgroundColor: 'rgba(255,255,255,0.1)' },
   heroBtnOutlineTxt: { fontFamily: fonts.body, fontSize: fontSize.label, color: colors.white, fontWeight: fontWeight.semibold, letterSpacing: 0.7 },
+  visionBtn: { paddingVertical: 10, alignItems: 'center' },
+  visionBtnTxt: { fontFamily: fonts.body, fontSize: fontSize.caption, color: colors.white, fontWeight: fontWeight.semibold, textDecorationLine: 'underline' },
 
   // Active project
   activeCard: { backgroundColor: colors.cardBg2, marginHorizontal: spacing.xl, marginTop: spacing.xl, marginBottom: spacing.sm, padding: spacing.lg, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border },
