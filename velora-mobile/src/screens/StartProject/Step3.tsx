@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, ScrollView, Pressable, StyleSheet, TextInput } from 'react-native'
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii, fontWeight } from '../../theme/tokens'
 import { useRouter } from '../../navigation/router'
 import PrimaryButton from '../../components/PrimaryButton'
 import SecondaryButton from '../../components/SecondaryButton'
-import { TIMELINE_OPTIONS } from '../../utils/booking'
 import type { BookingTimeline } from '../../api/types'
 
-const budgets = ['Below ₹8L', '₹8L–₹15L', '₹15L–₹30L', '₹30L–₹50L', 'Above ₹50L', 'Need guidance']
-const budgetFlexibilityOptions = ['Firm ceiling', 'Some flexibility for priorities', 'Still evaluating']
-const readinessOptions = ['Ready for a site visit', 'Awaiting possession', 'Comparing possibilities']
-const priorityOptions = ['Stay within budget', 'Finish by a fixed date', 'Premium finish & longevity', 'Low-maintenance living']
+const budgets = ['Under ₹8L', '₹8L–₹15L', '₹15L–₹30L', '₹30L–₹50L', '₹50L+', "I'm not sure yet"]
+const budgetFlexibilityOptions = ['I want to stay within this budget', 'I can stretch for the right priorities', "I'm still figuring it out"]
+const startOptions: { label: string; timeline: BookingTimeline }[] = [
+  { label: 'Immediately', timeline: 'ASAP' },
+  { label: 'Within 1 month', timeline: 'WITHIN_1_MONTH' },
+  { label: '1–3 months', timeline: 'ONE_TO_THREE_MONTHS' },
+  { label: '3+ months', timeline: 'FLEXIBLE' },
+  { label: 'Not decided', timeline: 'FLEXIBLE' },
+]
+const priorityOptions = ['Stay within budget', 'Finish quickly', 'Premium look & quality', 'Easy to maintain', 'Make the most of the space']
 
 export default function Step3() {
   const router = useRouter()
@@ -19,7 +24,7 @@ export default function Step3() {
   const area = router.getParam('area') || ''
   const location = router.getParam('location') || ''
   const propertyCondition = router.getParam('propertyCondition') || ''
-  const household = router.getParam('household') || ''
+  const possessionDate = router.getParam('possessionDate') || ''
   const visionBrief = router.getParam('visionBrief') || ''
   const visionImageUri = router.getParam('visionImageUri') || ''
   const visionGoals = router.getParam('visionGoals') || []
@@ -28,38 +33,32 @@ export default function Step3() {
   const style = router.getParam('style') || ''
   const rooms = router.getParam('rooms') || []
   const workTypes = router.getParam('workTypes') || []
-  const priorities = router.getParam('priorities') || ''
+  const notes = router.getParam('notes') || ''
 
   const [budget, setBudget] = useState(router.getParam('budget') || visionBudget || '')
   const [budgetFlexibility, setBudgetFlexibility] = useState(router.getParam('budgetFlexibility') || '')
-  const [timeline, setTimeline] = useState<BookingTimeline>(router.getParam('timeline') || 'ONE_TO_THREE_MONTHS')
-  const [readiness, setReadiness] = useState(router.getParam('readiness') || '')
-  const [possessionDate, setPossessionDate] = useState(router.getParam('possessionDate') || '')
+  const [startPreference, setStartPreference] = useState(router.getParam('startPreference') || '')
   const [decisionPriority, setDecisionPriority] = useState(router.getParam('decisionPriority') || '')
-  const [notes, setNotes] = useState(router.getParam('notes') || '')
 
   useEffect(() => {
-    router.updateParams({ budget, budgetFlexibility, timeline, readiness, possessionDate, decisionPriority, notes })
-  }, [budget, budgetFlexibility, timeline, readiness, possessionDate, decisionPriority, notes])
+    router.updateParams({ budget, budgetFlexibility, startPreference, decisionPriority })
+  }, [budget, budgetFlexibility, startPreference, decisionPriority])
 
-  const needsPossessionDate = readiness === 'Awaiting possession'
   const canContinue = Boolean(
     budget
     && budgetFlexibility
-    && timeline
-    && readiness
+    && startPreference
     && decisionPriority
-    && (!needsPossessionDate || possessionDate.trim())
   )
 
   const handleReview = () => {
     if (!canContinue) return
+    const timeline = startOptions.find(option => option.label === startPreference)?.timeline || 'FLEXIBLE'
     router.push('StartProject_Review', {
-      propertyType, bedrooms, area, location, propertyCondition, household,
+      propertyType, bedrooms, area, location, propertyCondition, possessionDate,
       visionBrief, visionImageUri, visionGoals, visionBudget,
-      scope, style, rooms, workTypes, priorities,
-      budget, budgetFlexibility, timeline, readiness,
-      possessionDate: possessionDate.trim(), decisionPriority, notes: notes.trim(),
+      scope, style, rooms, workTypes, notes,
+      budget, budgetFlexibility, timeline, startPreference, decisionPriority,
     })
   }
 
@@ -74,12 +73,11 @@ export default function Step3() {
         <Text style={s.progressTxt}>STEP 3 OF 4 · 75%</Text>
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
-        <Text style={s.eyebrow}>INVESTMENT & EXPECTATIONS</Text>
-        <Text style={s.title}>Let's align on what success looks like.</Text>
-        <Text style={s.subtitle}>Honest ranges help us recommend a realistic approach before the first site visit.</Text>
+        <Text style={s.eyebrow}>BUDGET & TIMELINE</Text>
+        <Text style={s.title}>A practical starting point.</Text>
+        <Text style={s.subtitle}>Approximate answers are enough. You can refine them with your professional later.</Text>
 
-        <Text style={s.fieldLabel}>What total investment range are you planning?</Text>
-        <Text style={s.helper}>Include interiors, materials, furniture, and execution where applicable.</Text>
+        <Text style={s.fieldLabel}>What budget range are you comfortable with?</Text>
         <View style={s.chips}>
           {budgets.map(b => (
             <Pressable key={b} style={[s.chip, budget === b && s.chipActive]} onPress={() => setBudget(b)}>
@@ -88,7 +86,7 @@ export default function Step3() {
           ))}
         </View>
 
-        <Text style={s.fieldLabel}>How fixed is that budget?</Text>
+        <Text style={s.fieldLabel}>How flexible is your budget?</Text>
         <View style={s.chips}>
           {budgetFlexibilityOptions.map(option => (
             <Pressable key={option} style={[s.chip, budgetFlexibility === option && s.chipActive]} onPress={() => setBudgetFlexibility(option)}>
@@ -97,38 +95,16 @@ export default function Step3() {
           ))}
         </View>
 
-        <Text style={s.fieldLabel}>When would you like the work completed?</Text>
+        <Text style={s.fieldLabel}>When would you like to get started?</Text>
         <View style={s.timelineChips}>
-          {TIMELINE_OPTIONS.map(opt => (
-            <Pressable key={opt.value} style={[s.timeChip, timeline === opt.value && s.chipActive]} onPress={() => setTimeline(opt.value)}>
-              <Text style={[s.chipTxt, timeline === opt.value && s.chipTxtActive]}>{opt.label}</Text>
+          {startOptions.map(option => (
+            <Pressable key={option.label} style={[s.timeChip, startPreference === option.label && s.chipActive]} onPress={() => setStartPreference(option.label)}>
+              <Text style={[s.chipTxt, startPreference === option.label && s.chipTxtActive]}>{option.label}</Text>
             </Pressable>
           ))}
         </View>
 
-        <Text style={s.fieldLabel}>How ready is the property and your decision?</Text>
-        <View style={s.chips}>
-          {readinessOptions.map(option => (
-            <Pressable key={option} style={[s.chip, readiness === option && s.chipActive]} onPress={() => setReadiness(option)}>
-              <Text style={[s.chipTxt, readiness === option && s.chipTxtActive]}>{option}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {needsPossessionDate && (
-          <View>
-            <Text style={s.fieldLabel}>When do you expect possession?</Text>
-            <TextInput
-              style={s.input}
-              placeholder="e.g. March 2027"
-              placeholderTextColor={colors.mutedText}
-              value={possessionDate}
-              onChangeText={setPossessionDate}
-            />
-          </View>
-        )}
-
-        <Text style={s.fieldLabel}>If trade-offs arise, what should we protect first?</Text>
+        <Text style={s.fieldLabel}>If you had to prioritize one thing, what would it be?</Text>
         <View style={s.chips}>
           {priorityOptions.map(option => (
             <Pressable key={option} style={[s.chip, decisionPriority === option && s.chipActive]} onPress={() => setDecisionPriority(option)}>
@@ -137,20 +113,9 @@ export default function Step3() {
           ))}
         </View>
 
-        <Text style={s.fieldLabel}>What should your designer know before calling?</Text>
-        <TextInput
-          style={s.textarea}
-          multiline
-          numberOfLines={4}
-          placeholder="Pets, accessibility, vastu, work-from-home needs, items to retain, deadlines, or building restrictions"
-          placeholderTextColor={colors.mutedText}
-          value={notes}
-          onChangeText={setNotes}
-        />
-
         <View style={s.actions}>
-          {!canContinue && <Text style={s.requiredHint}>Complete each choice to build an accurate consultation brief.</Text>}
-          <PrimaryButton label="Review consultation brief" onPress={handleReview} disabled={!canContinue} />
+          {!canContinue && <Text style={s.requiredHint}>Choose a budget, flexibility, start time, and priority.</Text>}
+          <PrimaryButton label="Review your request" onPress={handleReview} disabled={!canContinue} />
           <SecondaryButton label="Back" onPress={() => router.back()} />
         </View>
       </ScrollView>

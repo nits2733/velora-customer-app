@@ -1,20 +1,52 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, Pressable, StyleSheet, Image } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii } from '../../theme/tokens'
 import { useRouter } from '../../navigation/router'
 import AppHeader from '../../components/AppHeader'
 import InputField from '../../components/InputField'
 import PrimaryButton from '../../components/PrimaryButton'
+import ImgWarm from '../../../assets/images/89a8f.png'
+import ImgClean from '../../../assets/images/94bfe.png'
+import ImgModern from '../../../assets/images/0a1c1.png'
+import ImgClassic from '../../../assets/images/c9d47.png'
+import ImgExpressive from '../../../assets/images/3484d.png'
+import ImgDiscover from '../../../assets/images/419c8.png'
 
 const scopeOptions = [
-  'Design and end-to-end execution',
-  'Design with contractor coordination',
-  'Fixed interiors and storage',
-  'Furnishing and styling only',
+  'Design only',
+  'Design + execution',
+  'Execution only',
+  'Furniture & styling',
+  'Not sure yet',
 ]
-const styleOptions = ['Warm contemporary', 'Clean minimal', 'Modern Indian', 'Classic / traditional', 'Bold and eclectic', 'Help me discover']
-const roomOptions = ['Foyer', 'Living Room', 'Dining', 'Kitchen', 'Primary Bedroom', 'Kids Room', 'Guest Bedroom', 'Study', 'Bathrooms', 'Balcony']
-const workOptions = ['Space planning', 'Civil changes', 'Modular kitchen', 'Wardrobes & storage', 'Lighting & electrical', 'False ceiling', 'Furniture', 'Paint & wall finishes', 'Soft furnishings']
+const styleOptions = [
+  { label: 'Warm & Cozy', detail: 'Comfortable, warm and inviting', image: ImgWarm },
+  { label: 'Simple & Clean', detail: 'Open, uncluttered and easy to maintain', image: ImgClean },
+  { label: 'Modern & Elegant', detail: 'Contemporary and sophisticated', image: ImgModern },
+  { label: 'Classic & Timeless', detail: 'Elegant with traditional touches', image: ImgClassic },
+  { label: 'Colourful & Expressive', detail: 'Bold colours and personality', image: ImgExpressive },
+  { label: 'Not Sure Yet', detail: 'Help me discover my style', image: ImgDiscover },
+]
+const roomOptions = ['Entire Home', 'Living Room', 'Kitchen', 'Primary Bedroom', 'Kids Room', 'Guest Bedroom', 'Dining', 'Study', 'Bathrooms', 'Balcony', 'Foyer']
+const workOptions = ['Kitchen', 'Wardrobes & Storage', 'Furniture', 'Lighting', 'Ceiling', 'Paint & Walls', 'Flooring / Civil Work', 'Curtains & Soft Furnishings', 'Electrical Work', 'Other']
+
+function normalizeScope(value: string): string {
+  const normalized = value.toLowerCase()
+  if (normalized.includes('furnish') || normalized.includes('styling')) return 'Furniture & styling'
+  if (normalized.includes('design') && !normalized.includes('execution')) return 'Design only'
+  if (normalized.includes('execution') || normalized.includes('home project')) return 'Design + execution'
+  return scopeOptions.includes(value) ? value : ''
+}
+
+function normalizeStyle(value: string): string {
+  const normalized = value.toLowerCase()
+  if (normalized.includes('minimal') || normalized.includes('clean')) return 'Simple & Clean'
+  if (normalized.includes('warm') || normalized.includes('cozy')) return 'Warm & Cozy'
+  if (normalized.includes('classic') || normalized.includes('traditional')) return 'Classic & Timeless'
+  if (normalized.includes('bold') || normalized.includes('eclectic') || normalized.includes('colour')) return 'Colourful & Expressive'
+  if (normalized.includes('modern') || normalized.includes('contemporary')) return 'Modern & Elegant'
+  return styleOptions.some(option => option.label === value) ? value : ''
+}
 
 const TOTAL_STEPS = 4
 const CURRENT_STEP = 2
@@ -27,7 +59,7 @@ export default function Step2() {
   const area = router.getParam('area') || ''
   const location = router.getParam('location') || ''
   const propertyCondition = router.getParam('propertyCondition') || ''
-  const household = router.getParam('household') || ''
+  const possessionDate = router.getParam('possessionDate') || ''
   const visionBrief = router.getParam('visionBrief') || ''
   const visionImageUri = router.getParam('visionImageUri') || ''
   const visionGoals = router.getParam('visionGoals') || []
@@ -36,27 +68,33 @@ export default function Step2() {
   const presetScope = router.getParam('presetScope') || ''
   const presetStyle = router.getParam('presetStyle') || ''
 
-  const [scope, setScope] = useState(router.getParam('scope') || presetScope)
-  const [style, setStyle] = useState(router.getParam('style') || presetStyle)
+  const [scope, setScope] = useState(router.getParam('scope') || normalizeScope(presetScope))
+  const [style, setStyle] = useState(router.getParam('style') || normalizeStyle(presetStyle))
   const [rooms, setRooms] = useState<string[]>(router.getParam('rooms') || [])
   const [workTypes, setWorkTypes] = useState<string[]>(router.getParam('workTypes') || [])
-  const [priorities, setPriorities] = useState(router.getParam('priorities') || '')
+  const [notes, setNotes] = useState(router.getParam('notes') || '')
 
   useEffect(() => {
-    router.updateParams({ scope, style, rooms, workTypes, priorities })
-  }, [scope, style, rooms, workTypes, priorities])
-
-  const scopeChoices = presetScope && !scopeOptions.includes(presetScope)
-    ? [presetScope, ...scopeOptions]
-    : scopeOptions
-  const styleChoices = presetStyle && !styleOptions.includes(presetStyle)
-    ? [presetStyle, ...styleOptions]
-    : styleOptions
+    router.updateParams({ scope, style, rooms, workTypes, notes })
+  }, [scope, style, rooms, workTypes, notes])
 
   const canContinue = Boolean(scope && style && rooms.length > 0 && workTypes.length > 0)
 
-  const toggleSelection = (value: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    setter(prev =>
+  const toggleRoom = (value: string) => {
+    if (value === 'Entire Home') {
+      setRooms(prev => prev.includes(value) ? [] : [value])
+      return
+    }
+    setRooms(prev => {
+      const withoutEntireHome = prev.filter(item => item !== 'Entire Home')
+      return withoutEntireHome.includes(value)
+        ? withoutEntireHome.filter(item => item !== value)
+        : [...withoutEntireHome, value]
+    })
+  }
+
+  const toggleWork = (value: string) => {
+    setWorkTypes(prev =>
       prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]
     )
   }
@@ -69,7 +107,7 @@ export default function Step2() {
       area,
       location,
       propertyCondition,
-      household,
+      possessionDate,
       visionBrief,
       visionImageUri,
       visionGoals,
@@ -78,7 +116,7 @@ export default function Step2() {
       style,
       rooms,
       workTypes,
-      priorities: priorities.trim(),
+      notes: notes.trim(),
     })
   }
 
@@ -96,13 +134,13 @@ export default function Step2() {
             />
           ))}
         </View>
-        <Text style={styles.stepLabel}>STEP 2 OF 4 · SCOPE & STYLE</Text>
-        <Text style={styles.title}>What should change, and how far should we take it?</Text>
-        <Text style={styles.subtitle}>Select the details you would discuss in a first design consultation.</Text>
+        <Text style={styles.stepLabel}>STEP 2 OF 4 · YOUR PROJECT</Text>
+        <Text style={styles.title}>Tell us what you&apos;d like to create.</Text>
+        <Text style={styles.subtitle}>A few simple choices are enough. Your professional can work through the details with you later.</Text>
 
-        <Text style={styles.fieldLabel}>What level of support do you expect from Velora?</Text>
+        <Text style={styles.fieldLabel}>What kind of help are you looking for?</Text>
         <View style={styles.chipRow}>
-          {scopeChoices.map(s => (
+          {scopeOptions.map(s => (
             <Pressable
               key={s}
               onPress={() => setScope(s)}
@@ -114,14 +152,14 @@ export default function Step2() {
         </View>
 
         <View style={styles.fieldHeadingRow}>
-          <Text style={styles.fieldLabel}>Which spaces need attention?</Text>
-          {rooms.length > 0 && <Text style={styles.count}>{rooms.length} selected</Text>}
+          <Text style={styles.fieldLabel}>Which parts of your home need attention?</Text>
+          {rooms.length > 0 && <Text style={styles.count}>{rooms.includes('Entire Home') ? 'Entire home' : `${rooms.length} selected`}</Text>}
         </View>
         <View style={styles.chipRow}>
           {roomOptions.map(room => (
             <Pressable
               key={room}
-              onPress={() => toggleSelection(room, setRooms)}
+              onPress={() => toggleRoom(room)}
               style={[styles.chip, rooms.includes(room) && styles.chipActive]}
             >
               <Text style={[styles.chipText, rooms.includes(room) && styles.chipTextActive]}>{rooms.includes(room) ? '✓ ' : ''}{room}</Text>
@@ -130,14 +168,14 @@ export default function Step2() {
         </View>
 
         <View style={styles.fieldHeadingRow}>
-          <Text style={styles.fieldLabel}>What work do you already know you need?</Text>
+          <Text style={styles.fieldLabel}>What would you like to add or change?</Text>
           {workTypes.length > 0 && <Text style={styles.count}>{workTypes.length} selected</Text>}
         </View>
         <View style={styles.chipRow}>
           {workOptions.map(work => (
             <Pressable
               key={work}
-              onPress={() => toggleSelection(work, setWorkTypes)}
+              onPress={() => toggleWork(work)}
               style={[styles.chip, workTypes.includes(work) && styles.chipActive]}
             >
               <Text style={[styles.chipText, workTypes.includes(work) && styles.chipTextActive]}>{workTypes.includes(work) ? '✓ ' : ''}{work}</Text>
@@ -145,31 +183,28 @@ export default function Step2() {
           ))}
         </View>
 
-        {workTypes.includes('Civil changes') && (
-          <View style={styles.contextNote}>
-            <Text style={styles.contextTitle}>Structural work noted</Text>
-            <Text style={styles.contextText}>We will review feasibility, building permissions, and site constraints during consultation.</Text>
-          </View>
-        )}
-
-        <Text style={styles.fieldLabel}>Which design direction feels closest?</Text>
-        <View style={styles.chipRow}>
-          {styleChoices.map(option => (
+        <Text style={styles.fieldLabel}>Which kind of home feels most like you?</Text>
+        <View style={styles.styleGrid}>
+          {styleOptions.map(option => (
             <Pressable
-              key={option}
-              onPress={() => setStyle(option)}
-              style={[styles.chip, style === option && styles.chipActive]}
+              key={option.label}
+              onPress={() => setStyle(option.label)}
+              style={[styles.styleCard, style === option.label && styles.styleCardActive]}
             >
-              <Text style={[styles.chipText, style === option && styles.chipTextActive]}>{option}</Text>
+              <Image source={option.image} style={styles.styleImage} />
+              <View style={styles.styleCopy}>
+                <Text style={styles.styleTitle}>{style === option.label ? '✓ ' : ''}{option.label}</Text>
+                <Text style={styles.styleDetail}>{option.detail}</Text>
+              </View>
             </Pressable>
           ))}
         </View>
 
         <InputField
-          label="What are your non-negotiables? (optional)"
-          placeholder="e.g. more concealed storage, easy-clean finishes, a larger dining area"
-          value={priorities}
-          onChangeText={setPriorities}
+          label="Anything else you'd like us to know? (optional)"
+          placeholder="Tell us about anything important — specific requirements, preferences, or concerns."
+          value={notes}
+          onChangeText={setNotes}
           multiline
           numberOfLines={3}
         />
@@ -275,6 +310,43 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: colors.white,
+  },
+  styleGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  styleCard: {
+    width: '48%',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.white,
+  },
+  styleCardActive: {
+    borderColor: colors.darkText,
+  },
+  styleImage: {
+    width: '100%',
+    height: 108,
+  },
+  styleCopy: {
+    minHeight: 82,
+    padding: spacing.sm,
+  },
+  styleTitle: {
+    fontFamily: fonts.body,
+    fontSize: fontSize.label,
+    fontWeight: '600',
+    color: colors.darkText,
+  },
+  styleDetail: {
+    marginTop: 3,
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
+    lineHeight: 16,
+    color: colors.mutedText,
   },
   contextNote: {
     padding: spacing.md,

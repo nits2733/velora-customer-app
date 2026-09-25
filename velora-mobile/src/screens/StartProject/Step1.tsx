@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, Pressable, StyleSheet, TextInput } from 'react-native'
 import { colors, fonts, fontSize, spacing, radii, fontWeight } from '../../theme/tokens'
 import { useRouter } from '../../navigation/router'
 import AppHeader from '../../components/AppHeader'
@@ -14,12 +14,15 @@ const propertyTypes = [
 ]
 const bedroomOptions = ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5+ BHK']
 const propertyConditions = [
+  'Ready to move in',
   'New possession',
   'Currently living here',
   'Resale / older home',
   'Under construction',
 ]
-const householdOptions = ['Just me', 'Couple', 'Family with children', 'Multi-generation family', 'Tenants']
+const locationSuggestions = [
+  'Bengaluru', 'Chennai', 'Delhi', 'Gurugram', 'Hyderabad', 'Kolkata', 'Mumbai', 'Noida', 'Pune',
+]
 
 const TOTAL_STEPS = 4
 
@@ -36,12 +39,20 @@ export default function Step1() {
   const [area, setArea] = useState(router.getParam('area') || '')
   const [location, setLocation] = useState(router.getParam('location') || '')
   const [propertyCondition, setPropertyCondition] = useState(router.getParam('propertyCondition') || '')
-  const [household, setHousehold] = useState(router.getParam('household') || '')
-  const canContinue = Boolean(propertyType && bedrooms && propertyCondition && household && location.trim())
+  const [possessionDate, setPossessionDate] = useState(router.getParam('possessionDate') || '')
+  const [locationFocused, setLocationFocused] = useState(false)
+  const needsPossessionDate = propertyCondition === 'Under construction'
+  const filteredLocations = locationSuggestions.filter(option =>
+    !location.trim() || option.toLowerCase().includes(location.trim().toLowerCase())
+  ).slice(0, 5)
+  const canContinue = Boolean(
+    propertyType && bedrooms && propertyCondition && location.trim()
+    && (!needsPossessionDate || possessionDate.trim())
+  )
 
   useEffect(() => {
-    router.updateParams({ propertyType, bedrooms, area, location, propertyCondition, household })
-  }, [propertyType, bedrooms, area, location, propertyCondition, household])
+    router.updateParams({ propertyType, bedrooms, area, location, propertyCondition, possessionDate })
+  }, [propertyType, bedrooms, area, location, propertyCondition, possessionDate])
 
   const handleContinue = () => {
     if (!canContinue) return
@@ -51,7 +62,7 @@ export default function Step1() {
       area,
       location: location.trim(),
       propertyCondition,
-      household,
+      possessionDate: possessionDate.trim(),
       visionBrief,
       visionImageUri,
       visionGoals,
@@ -85,7 +96,7 @@ export default function Step1() {
         <View style={styles.questionHead}>
           <Text style={styles.questionNumber}>01</Text>
           <View style={styles.questionCopy}>
-            <Text style={styles.fieldLabel}>What kind of home are we designing?</Text>
+            <Text style={styles.fieldLabel}>What kind of home is this?</Text>
             <Text style={styles.helper}>Choose the closest match.</Text>
           </View>
         </View>
@@ -102,7 +113,7 @@ export default function Step1() {
           ))}
         </View>
 
-        <Text style={styles.fieldLabel}>How many bedrooms are part of the home?</Text>
+        <Text style={styles.fieldLabel}>How many bedrooms?</Text>
         <View style={styles.chipRow}>
           {bedroomOptions.map(b => (
             <Pressable
@@ -115,7 +126,7 @@ export default function Step1() {
           ))}
         </View>
 
-        <Text style={styles.fieldLabel}>What stage is the property at?</Text>
+        <Text style={styles.fieldLabel}>What&apos;s the property status?</Text>
         <View style={styles.chipRow}>
           {propertyConditions.map(condition => (
             <Pressable
@@ -128,18 +139,14 @@ export default function Step1() {
           ))}
         </View>
 
-        <Text style={styles.fieldLabel}>Who should this home work especially well for?</Text>
-        <View style={styles.chipRow}>
-          {householdOptions.map(option => (
-            <Pressable
-              key={option}
-              onPress={() => setHousehold(option)}
-              style={[styles.chip, household === option && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, household === option && styles.chipTextActive]}>{option}</Text>
-            </Pressable>
-          ))}
-        </View>
+        {needsPossessionDate && (
+          <InputField
+            label="When is possession expected?"
+            placeholder="e.g. March 2027"
+            value={possessionDate}
+            onChangeText={setPossessionDate}
+          />
+        )}
 
         <InputField
           label="Approximate carpet area (optional)"
@@ -149,12 +156,33 @@ export default function Step1() {
           keyboardType="numeric"
         />
 
-        <InputField
-          label="Where is the property?"
-          placeholder="City and neighbourhood"
-          value={location}
-          onChangeText={setLocation}
-        />
+        <View>
+          <Text style={styles.locationLabel}>Where is the property?</Text>
+          <TextInput
+            style={styles.locationInput}
+            placeholder="Search city or neighbourhood"
+            placeholderTextColor={colors.mutedText}
+            value={location}
+            onChangeText={setLocation}
+            onFocus={() => setLocationFocused(true)}
+          />
+          {locationFocused && filteredLocations.length > 0 && (
+            <View style={styles.suggestions}>
+              {filteredLocations.map(option => (
+                <Pressable
+                  key={option}
+                  style={styles.suggestion}
+                  onPress={() => {
+                    setLocation(option)
+                    setLocationFocused(false)
+                  }}
+                >
+                  <Text style={styles.suggestionText}>{option}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
 
         <View style={styles.ctaWrap}>
           {!canContinue && <Text style={styles.requiredHint}>Complete the required choices and location to continue.</Text>}
@@ -295,6 +323,44 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: colors.white,
+  },
+  locationLabel: {
+    fontSize: fontSize.label,
+    fontFamily: fonts.body,
+    color: colors.darkText,
+    fontWeight: fontWeight.semibold,
+    marginBottom: spacing.sm,
+  },
+  locationInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    fontFamily: fonts.body,
+    fontSize: fontSize.label,
+    color: colors.darkText,
+    backgroundColor: colors.white,
+  },
+  suggestions: {
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: colors.border,
+    borderBottomLeftRadius: radii.md,
+    borderBottomRightRadius: radii.md,
+    backgroundColor: colors.white,
+    overflow: 'hidden',
+  },
+  suggestion: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  suggestionText: {
+    fontFamily: fonts.body,
+    fontSize: fontSize.label,
+    color: colors.darkText,
   },
   ctaWrap: {
     marginTop: spacing.md,
