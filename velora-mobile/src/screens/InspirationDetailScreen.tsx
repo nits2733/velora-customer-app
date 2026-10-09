@@ -37,6 +37,7 @@ export default function InspirationDetailScreen() {
   const relatedSpaces = Object.entries(CATEGORY_CONTENT)
     .filter(([, content]) => content.styles.includes(item.styleTag))
     .map(([name]) => name)
+  const hideRelatedSpaces = router.getParam('hideRelatedSpaces') === 'true'
   const relatedProjects = item.relatedProjectIds
     .map(pid => POPULAR_PROJECTS.find(p => p.id === pid))
     .filter((p): p is typeof POPULAR_PROJECTS[number] => Boolean(p))
@@ -189,7 +190,7 @@ export default function InspirationDetailScreen() {
             </View>
           )}
 
-          {relatedSpaces.length > 0 && (
+          {!hideRelatedSpaces && relatedSpaces.length > 0 && (
             <View style={styles.section}>
               <SectionHeader label="EXPLORE" title="Related Spaces" />
               <View style={styles.tagsRow}>
@@ -197,7 +198,7 @@ export default function InspirationDetailScreen() {
                   <FadeInUp key={name} delay={i * 30}>
                     <Pressable
                       style={styles.tagChip}
-                      onPress={() => router.push('CategoryDetail', { name })}
+                      onPress={() => router.push('CategoryDetail', { name, hideRelatedSpaces: 'true' })}
                     >
                       <Text style={styles.tagChipTxt}>{name}</Text>
                     </Pressable>

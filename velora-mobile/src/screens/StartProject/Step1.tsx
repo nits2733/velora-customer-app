@@ -166,6 +166,9 @@ export default function Step1() {
             onChangeText={setLocation}
             onFocus={() => setLocationFocused(true)}
           />
+          <Pressable style={styles.mapLink} onPress={() => router.push('WorkMap', { pickLocation: true })}>
+            <Text style={styles.mapLinkText}>📍 Pick on map</Text>
+          </Pressable>
           {locationFocused && filteredLocations.length > 0 && (
             <View style={styles.suggestions}>
               {filteredLocations.map(option => (
@@ -323,6 +326,16 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: colors.white,
+  },
+  mapLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.sm,
+  },
+  mapLinkText: {
+    fontSize: fontSize.label,
+    fontFamily: fonts.body,
+    color: colors.accent,
+    fontWeight: fontWeight.semibold,
   },
   locationLabel: {
     fontSize: fontSize.label,

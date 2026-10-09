@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { View, Text, Image, Pressable, ScrollView, StyleSheet } from 'react-native'
 import { colors, fonts, fontSize, spacing, shadows, radii, fontWeight } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
@@ -28,6 +28,12 @@ export default function CategoryDetailScreen() {
 
   const name = getParam(router, 'name') || 'Category'
   const imageUrl = getParam(router, 'imageUrl')
+  const hideRelatedSpaces = getParam(router, 'hideRelatedSpaces') === 'true'
+  const scrollRef = useRef<ScrollView>(null)
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false })
+  }, [name])
 
   const heroImage = imageUrl ? { uri: imageUrl } : (CATEGORY_FALLBACK_IMAGES[name] || FALLBACK_IMAGE)
   const content = CATEGORY_CONTENT[name] || DEFAULT_CATEGORY_CONTENT
@@ -37,7 +43,7 @@ export default function CategoryDetailScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+      <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={styles.heroContainer}>
           <Image source={heroImage} style={styles.heroImage} resizeMode="cover" alt={name} />
           <View style={styles.heroOverlay} />
@@ -170,7 +176,7 @@ export default function CategoryDetailScreen() {
             </View>
           )}
 
-          {content.relatedSpaces.length > 0 && (
+          {!hideRelatedSpaces && content.relatedSpaces.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Related Spaces</Text>
               <View style={styles.relatedSpacesRow}>
@@ -178,7 +184,7 @@ export default function CategoryDetailScreen() {
                   <FadeInUp key={space} delay={i * 30}>
                     <Chip
                       label={space}
-                      onPress={() => router.push('CategoryDetail', { name: space })}
+                      onPress={() => router.push('CategoryDetail', { name: space, hideRelatedSpaces: 'true' })}
                     />
                   </FadeInUp>
                 ))}

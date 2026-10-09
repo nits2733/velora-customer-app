@@ -25,6 +25,7 @@ export default function ServiceRequestScreen() {
   const serviceName = getParam(router, 'name') || 'Service'
   const selectedOption = getParam(router, 'selectedOption')
   const priceRange = getParam(router, 'priceRange')
+  const quantity = getParam(router, 'quantity')
 
   const [location, setLocation] = useState('')
   const [timeline, setTimeline] = useState<BookingTimeline>('ASAP')
@@ -45,6 +46,7 @@ export default function ServiceRequestScreen() {
     try {
       const composedNotes = [
         selectedOption && `Option: ${selectedOption}`,
+        quantity && `Quantity: ${quantity}`,
         notes.trim() && `Requirements: ${notes.trim()}`,
       ].filter(Boolean).join('\n')
 
@@ -75,6 +77,7 @@ export default function ServiceRequestScreen() {
           <Text style={s.summaryLabel}>REQUESTING</Text>
           <Text style={s.summaryName}>{serviceName}</Text>
           {selectedOption && <Text style={s.summaryOption}>{selectedOption}</Text>}
+          {quantity && <Text style={s.summaryOption}>Quantity: {quantity}</Text>}
           {priceRange && <Text style={s.summaryPrice}>Estimated: {priceRange}</Text>}
         </View>
 

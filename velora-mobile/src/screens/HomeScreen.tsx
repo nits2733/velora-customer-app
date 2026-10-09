@@ -446,9 +446,9 @@ const s = StyleSheet.create({
   faqList: { marginTop: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border },
 
   // Support
-  supportCard: { marginHorizontal: spacing.xl, marginTop: spacing.section, backgroundColor: colors.cardBg, borderRadius: radii.md, padding: spacing.xl, borderWidth: 1, borderColor: colors.border },
-  supportTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.darkText, fontWeight: fontWeight.semibold, marginBottom: 6 },
-  supportSub: { fontFamily: fonts.body, fontSize: fontSize.label, color: colors.mutedText, marginBottom: spacing.lg, lineHeight: 20 },
-  supportBtns: { flexDirection: 'row', gap: 10 },
-  supportBtn: { flex: 1 },
+  supportCard: { marginHorizontal: spacing.xl, marginTop: spacing.section, backgroundColor: colors.cardBg, borderRadius: radii.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
+  supportTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.darkText, fontWeight: fontWeight.semibold, marginBottom: 2 },
+  supportSub: { fontFamily: fonts.body, fontSize: fontSize.tiny, color: colors.mutedText, marginBottom: spacing.sm, lineHeight: 16 },
+  supportBtns: { flexDirection: 'row', gap: 8 },
+  supportBtn: { flex: 1, paddingVertical: spacing.sm, paddingHorizontal: spacing.sm },
 })

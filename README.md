@@ -1,18 +1,10 @@
 <div align="center">
 
-# 🏡 Velora Frontend
+# Velora Customer App
 
-**Interior services, one app** — from a full home transformation to a single service booking.
+Customer-facing mobile app for home projects and individual home-service bookings.
 
-![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white)
-![react--native--web](https://img.shields.io/badge/react--native--web-0.19-61dafb?logo=react&logoColor=white)
-![Tailwind](https://img.shields.io/badge/Tailwind_CSS-v4-06b6d4?logo=tailwindcss&logoColor=white)
-![Auth](https://img.shields.io/badge/Auth-JWT_%2B_2FA-6e40c9?logo=jsonwebtokens&logoColor=white)
-![status](https://img.shields.io/badge/status-active_dev-success)
-
-[Quick Start](#-quick-start) • [Stack](#-stack) • [Project Layout](#-project-layout) • [Backend Integration](#-backend-integration) • [What's Real](#-whats-wired-to-real-data) • [Known Gaps](#-known-gaps)
+Built with Expo, React Native, TypeScript, and Expo Router. The current app entry renders a custom in-memory router from `src/navigation/router.tsx`.
 
 </div>
 
@@ -20,24 +12,24 @@
 
 ## 📖 Overview
 
-Velora is a React Native (web) app for booking interior design and home services. Customers can browse real professional portfolios, book a **Full Home Project** or an **Individual Service** (painting, plumbing, electrical, carpentry, false ceiling, modular kitchen), track bookings through to completion, and manage quotations — all backed by a real Spring Boot API with JWT + 2FA authentication.
-
-The app runs as a single mobile-shaped viewport (`375px` wide) rendered via `react-native-web`, using a custom in-memory router that's synced to the URL so a page refresh lands you back where you were.
+Customers can browse services and inspiration, request a **Full Home Project** or an **Individual Service**, view their projects and quotations, and manage their profile. Authentication and supported customer workflows connect to the shared Spring Boot backend. The app targets native iOS and Android, with Expo web available for development.
 
 ---
 
 ## 🚀 Quick Start
 
 ```bash
-pnpm install
-pnpm dev
+npm install
+npm start
 ```
 
-Runs on `http://localhost:8443` (or `$PORT`). The dev server proxies `/api/*` to the backend — see [Backend Integration](#-backend-integration).
+Use the Expo CLI prompts to launch a device or emulator. For web, run `npm run web`. There is no Vite dev server or `/api` proxy in this project.
 
 ```bash
-pnpm build   # → dist/
+npx tsc --noEmit
 ```
+
+The TypeScript check is available directly; build and platform commands are provided by Expo.
 
 ---
 
@@ -45,34 +37,35 @@ pnpm build   # → dist/
 
 | | |
 |---|---|
-| **UI** | React 19 + `react-native-web` |
-| **Bundler** | Vite 8 |
-| **Language** | TypeScript 5.7 |
-| **Styling** | Tailwind CSS v4 |
-| **Routing** | Custom in-memory router, URL-synced (`src/navigation/router.tsx`) |
-| **Auth** | JWT access + refresh tokens, 2FA email OTP |
+| **UI** | React Native 0.86 + React 19 |
+| **Platform tooling** | Expo SDK 57 + Expo Router |
+| **Language** | TypeScript 6 |
+| **Routing** | Custom in-memory router (`src/navigation/router.tsx`), rendered by the Expo Router root layout |
+| **Auth** | Backend access/refresh tokens and email OTP verification |
 
 ---
 
 ## 📂 Project Layout
 
 ```
-src/
-  api/          Typed API client + controllers (auth, bookings, quotations, favorites, uploads, ...)
-  components/   Reusable UI — buttons, cards, inputs, nav, ConfirmModal
-  context/      React contexts — auth, cart
-  navigation/   Custom router
-  screens/      Every screen, incl. Login/Register/VerifyOtp and the StartProject wizard
-  theme/        Design tokens (colors, type scale, spacing, status colors)
+velora-mobile/
+  app/          Expo Router entry and root layout
+  src/api/      Typed backend client and domain API modules
+  src/context/  Authentication and app state
+  src/navigation/ Custom in-memory screen router
+  src/screens/  Customer screens and the StartProject flow
+  src/theme/    Design tokens
 ```
+
+Run commands from `velora-mobile/` (the directory containing `package.json`).
 
 ---
 
 ## 🔌 Backend Integration
 
-The app expects the Velora backend (Spring Boot) at `http://localhost:8080` by default. `vite.config.ts`'s `server.proxy` forwards `/api/*` there — override with the `BACKEND_URL` env var if it runs elsewhere.
+The app reads `EXPO_PUBLIC_API_BASE_URL` in `app.config.ts`; it defaults to `http://localhost:8080`. Set it to a backend URL reachable from the target device. On a physical device, `localhost` refers to the device itself, so use the development machine's LAN address or a reachable deployed backend. There is no Vite proxy.
 
-> **Backend setup:** the backend's `CORS_ALLOWED_ORIGINS` env var must include this app's origin (`http://localhost:8443` by default) — otherwise the browser blocks auth and other mutating requests with a CORS error, even though `curl` (no `Origin` header) would appear to work fine.
+> **Backend setup for web:** add the browser origin printed by Expo to the backend's `CORS_ALLOWED_ORIGINS` (usually `http://localhost:8081`; Expo may choose another port). Native app requests are not subject to browser CORS.
 
 ### Auth flow
 
@@ -84,15 +77,16 @@ Register or log in → login dispatches a 2FA email OTP → verify the OTP → r
 
 | Area | Backed by |
 |---|---|
-| Explore / Services | `categoriesApi`, `portfolioApi` — real categories + portfolio search |
-| Home / Projects | `bookingsApi` — real bookings, grouped Active / Upcoming / Complete |
-| StartProject wizard & Checkout | `POST /api/bookings` — creates a real booking, not a fake success screen |
-| My Quotations / Quotation Detail | `quotationsApi`, aggregated per-booking (no list-all endpoint exists); real accept/reject |
-| Profile | Real user data, avatar upload (`/api/uploads` → Cloudinary), real Projects/Quotations/Saved counts (`favoritesApi`) |
+| Authentication | Backend registration/login and OTP verification through `authApi` |
+| Services and portfolio | Category and portfolio API modules |
+| Projects and service requests | Booking API module |
+| Quotations and reviews | Quotation and review API modules |
+| Profile and media | User and upload/media API modules |
 
----
+The API modules are present in `src/api`; individual screens may still contain unfinished or illustrative UI. Confirm a workflow against the backend before treating it as end-to-end complete.
 
 ## ⚠️ Known Gaps
 
-- **Delete Account** is a client-side no-op — no backend delete-account endpoint exists, so it shows a confirmation flow but never calls the API.
-- **Sending a quotation / marking a booking complete** are professional/admin-only backend actions. This app has no professional-facing UI, so those paths are code-reviewed but not verified against live data end-to-end.
+- **Delete Account** is not supported by the backend and must not be presented as completed account deletion.
+- **Professional/admin workflows** such as sending a quotation and assigning or completing bookings are outside this customer app.
+- The app does not include automated test or lint scripts in `package.json`; validate changes with TypeScript and platform builds, plus workflow testing against a configured backend.

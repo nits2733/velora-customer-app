@@ -16,11 +16,11 @@ export default function FloatingWhatsApp() {
 const styles = StyleSheet.create({
   btn: {
     position: 'absolute',
-    bottom: 80,
-    right: 16,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    bottom: 72,
+    right: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.green,
     alignItems: 'center',
     justifyContent: 'center',
@@ -35,6 +35,6 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   icon: {
-    fontSize: 24,
+    fontSize: 19,
   },
 })

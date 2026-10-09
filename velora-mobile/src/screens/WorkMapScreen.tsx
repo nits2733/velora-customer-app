@@ -1,6 +1,9 @@
-import React from 'react'
-import { View, Text, ScrollView, StyleSheet } from 'react-native'
+import React, { useState } from 'react'
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native'
 import AppHeader from '../components/AppHeader'
+import LocationMap from '../components/LocationMap'
+import PrimaryButton from '../components/PrimaryButton'
+import { MapSelection } from '../components/locationMapHtml'
 import { colors, fonts, fontSize, spacing, radii, shadows, statusColors } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
 
@@ -8,14 +11,16 @@ type LocationItem = {
   name: string
   area: string
   status: 'Active' | 'Upcoming'
+  lat: number
+  lng: number
 }
 
 const locations: LocationItem[] = [
-  { name: 'Banjara Hills, Hyderabad', area: '14 active projects', status: 'Active' },
-  { name: 'Jubilee Hills, Hyderabad', area: '9 active projects', status: 'Active' },
-  { name: 'Madhapur, Hyderabad', area: '11 active projects', status: 'Active' },
-  { name: 'Gachibowli, Hyderabad', area: '6 active projects', status: 'Active' },
-  { name: 'Kondapur, Hyderabad', area: '4 upcoming projects', status: 'Upcoming' },
+  { name: 'Banjara Hills, Hyderabad', area: '14 active projects', status: 'Active', lat: 17.4156, lng: 78.4347 },
+  { name: 'Jubilee Hills, Hyderabad', area: '9 active projects', status: 'Active', lat: 17.4325, lng: 78.4073 },
+  { name: 'Madhapur, Hyderabad', area: '11 active projects', status: 'Active', lat: 17.4486, lng: 78.3908 },
+  { name: 'Gachibowli, Hyderabad', area: '6 active projects', status: 'Active', lat: 17.4401, lng: 78.3489 },
+  { name: 'Kondapur, Hyderabad', area: '4 upcoming projects', status: 'Upcoming', lat: 17.46, lng: 78.357 },
 ]
 
 const statusStyle: Record<string, { bg: string; text: string }> = {
@@ -25,6 +30,19 @@ const statusStyle: Record<string, { bg: string; text: string }> = {
 
 export default function WorkMapScreen() {
   const router = useRouter()
+  const pickMode = router.getParam('pickLocation') === true
+  const [selected, setSelected] = useState<MapSelection | null>(null)
+  const [focus, setFocus] = useState<{ lat: number; lng: number } | null>(null)
+
+  const handleConfirm = () => {
+    if (!selected) return
+    if (pickMode) {
+      router.back()
+      router.updateParams({ location: selected.name })
+    } else {
+      router.push('StartProject', { location: selected.name })
+    }
+  }
 
   return (
     <View style={styles.screen}>
@@ -33,14 +51,19 @@ export default function WorkMapScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Active Work Locations</Text>
           <Text style={styles.cardDesc}>
-            See where our teams are currently working across Hyderabad. Tap any location to learn more about ongoing projects in your area.
+            See where our teams are currently working across Hyderabad. Tap a marker or anywhere on the map to choose your project location.
           </Text>
 
-          {/* Mock map placeholder */}
-          <View style={styles.mapPlaceholder}>
-            <Text style={styles.mapIcon}>📍</Text>
-            <Text style={styles.mapText}>Map View</Text>
-            <Text style={styles.mapSubText}>Interactive map coming soon</Text>
+          <LocationMap places={locations} focus={focus} onSelect={setSelected} />
+
+          <View style={styles.selectedBox}>
+            <Text style={styles.selectedLabel}>SELECTED LOCATION</Text>
+            <Text style={styles.selectedName}>{selected ? selected.name : 'Nothing selected yet'}</Text>
+            <PrimaryButton
+              label={pickMode ? 'Use this location' : 'Start a project here'}
+              onPress={handleConfirm}
+              disabled={!selected}
+            />
           </View>
 
           {/* Location list */}
@@ -49,7 +72,14 @@ export default function WorkMapScreen() {
             {locations.map((loc, idx) => {
               const sc = statusStyle[loc.status]
               return (
-                <View key={idx} style={styles.locationItem}>
+                <Pressable
+                  key={idx}
+                  style={styles.locationItem}
+                  onPress={() => {
+                    setSelected({ name: loc.name, lat: loc.lat, lng: loc.lng })
+                    setFocus({ lat: loc.lat, lng: loc.lng })
+                  }}
+                >
                   <View style={styles.locationLeft}>
                     <Text style={styles.locationPin}>📍</Text>
                     <View style={styles.locationInfo}>
@@ -60,7 +90,7 @@ export default function WorkMapScreen() {
                   <View style={[styles.badge, { backgroundColor: sc.bg }]}>
                     <Text style={[styles.badgeText, { color: sc.text }]}>{loc.status}</Text>
                   </View>
-                </View>
+                </Pressable>
               )
             })}
           </View>
@@ -101,27 +131,21 @@ const styles = StyleSheet.create({
     color: colors.mutedText,
     lineHeight: 24,
   },
-  mapPlaceholder: {
-    height: 300,
-    backgroundColor: colors.border,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+  selectedBox: {
     gap: spacing.sm,
   },
-  mapIcon: {
-    fontSize: 48,
-  },
-  mapText: {
-    fontSize: fontSize.h3,
+  selectedLabel: {
+    fontSize: fontSize.caption,
     fontFamily: fonts.body,
-    color: colors.mutedText,
+    color: colors.accent,
     fontWeight: '600',
+    letterSpacing: 0.8,
   },
-  mapSubText: {
-    fontSize: fontSize.label,
+  selectedName: {
+    fontSize: fontSize.body,
     fontFamily: fonts.body,
-    color: colors.mutedText,
+    color: colors.darkText,
+    fontWeight: '600',
   },
   locationList: {
     gap: spacing.sm,
