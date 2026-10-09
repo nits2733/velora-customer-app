@@ -9,6 +9,7 @@ import Skeleton from '../components/Skeleton'
 import FadeInUp from '../components/FadeInUp'
 import AnimatedPressable from '../components/AnimatedPressable'
 import FAQItem from '../components/FAQItem'
+import TrustStats from '../components/TrustStats'
 import { categoriesApi } from '../api/categories'
 import type { CategoryResponse } from '../api/types'
 import ImgPainting from '../../assets/images/3484d.png'
@@ -28,12 +29,6 @@ const SERVICE_IMAGES: Record<string, number> = {
   'False Ceiling': ImgFalseCeiling,
   'Modular Kitchen': ImgModularKitchen,
 }
-
-const STATS = [
-  { value: '500+', label: 'Projects Delivered' },
-  { value: '150+', label: 'Vetted Professionals' },
-  { value: '4.8★', label: 'Average Rating' },
-]
 
 const HOW_IT_WORKS = [
   { step: '1', title: 'Choose a service', desc: 'Pick what your home needs and configure the details.' },
@@ -93,15 +88,7 @@ export default function ServicesScreen({ onHamburger }: Props) {
 
         {/* Trust stats */}
         <View style={s.statsRow}>
-          {STATS.map((stat, i) => (
-            <React.Fragment key={stat.label}>
-              <View style={s.statItem}>
-                <Text style={s.statValue}>{stat.value}</Text>
-                <Text style={s.statLabel}>{stat.label}</Text>
-              </View>
-              {i < STATS.length - 1 && <View style={s.statDivider} />}
-            </React.Fragment>
-          ))}
+          <TrustStats />
         </View>
 
         {/* Individual Services */}
@@ -202,19 +189,9 @@ const s = StyleSheet.create({
   bannerBtn: { alignSelf: 'flex-start' },
   bannerBtnTxt: { fontFamily: fonts.body, fontSize: fontSize.label, color: colors.white, fontWeight: fontWeight.semibold, letterSpacing: 0.5 },
   statsRow: {
-    flexDirection: 'row',
     marginHorizontal: spacing.xl,
     marginTop: spacing.xl,
-    backgroundColor: colors.cardBg,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
   },
-  statItem: { flex: 1, alignItems: 'center', paddingVertical: spacing.lg, gap: 4 },
-  statValue: { fontFamily: fonts.heading, fontSize: fontSize.h3, color: colors.darkText, fontWeight: fontWeight.bold },
-  statLabel: { fontFamily: fonts.body, fontSize: fontSize.caption, color: colors.mutedText, textAlign: 'center' },
-  statDivider: { width: 1, backgroundColor: colors.border, marginVertical: spacing.md },
   section: { padding: spacing.xl, gap: spacing.lg },
   stepsList: { gap: spacing.lg },
   stepRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },

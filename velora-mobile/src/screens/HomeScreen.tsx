@@ -24,6 +24,8 @@ import FAQItem from '../components/FAQItem'
 import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import PrimaryButton from '../components/PrimaryButton'
 import SecondaryButton from '../components/SecondaryButton'
+import TrustStats from '../components/TrustStats'
+import { getTimeGreeting } from '../utils/greeting'
 import ImgCompleteInterior from '../../assets/images/45a7e.png'
 import ImgElectrical from '../../assets/images/63616.png'
 import ImgPlumbing from '../../assets/images/8ac9e.png'
@@ -181,7 +183,7 @@ export default function HomeScreen({ onHamburger }: Props) {
           <Image source={ImgHero} style={s.heroImg} />
           <View style={s.heroGrad} />
           <View style={s.heroContent}>
-            <Text style={s.heroGreeting}>{firstName ? `Hi, ${firstName}` : 'Hi there'}</Text>
+            <Text style={s.heroGreeting}>{firstName ? `${getTimeGreeting()}, ${firstName}` : 'Hi there'}</Text>
             <Text style={s.heroTitle}>Design the home{'\n'}you want to live in.</Text>
             <Text style={s.heroSub}>From complete home transformations{'\n'}to the service you need today.</Text>
             <View style={s.heroBtns}>
@@ -213,6 +215,12 @@ export default function HomeScreen({ onHamburger }: Props) {
             </View>
           </Pressable>
         )}
+
+        {/* ── Why Choose Us ──────────────────────────────── */}
+        <View style={[s.section, { paddingBottom: 0 }]}>
+          <Text style={s.sectionLabel}>WHY CHOOSE US</Text>
+          <TrustStats />
+        </View>
 
         {/* ── What are you looking for? ─────────────────── */}
         <View style={s.section}>
@@ -274,7 +282,7 @@ export default function HomeScreen({ onHamburger }: Props) {
         {/* ── Inspiration ───────────────────────────────── */}
         <View style={[s.section, { paddingHorizontal: 0 }]}>
           <View style={s.sectionHead2}>
-            <Text style={s.sectionLabel}>GET INSPIRED</Text>
+            <Text style={s.sectionLabel}>TRENDING NOW</Text>
             <Text style={s.sectionTitle}>Spaces worth{'\n'}coming home to.</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>

@@ -5,7 +5,7 @@ import Svg, { Path, Circle, Rect } from 'react-native-svg'
 import AnimatedPressable from './AnimatedPressable'
 import { colors, fonts, fontSize, radii, spacing, shadows } from '../theme/tokens'
 
-type Tab = 'Home' | 'Explore' | 'Services' | 'Projects'
+type Tab = 'Home' | 'Explore' | 'Consultation' | 'Services' | 'Projects'
 
 type Props = {
   activeTab: Tab | null
@@ -51,9 +51,19 @@ function IconProjects({ color }: { color: string }) {
   )
 }
 
+function IconConsultation({ color }: { color: string }) {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 6.5A1.5 1.5 0 015.5 5h9A1.5 1.5 0 0116 6.5v6a1.5 1.5 0 01-1.5 1.5H9l-3.5 3v-3H5.5A1.5 1.5 0 014 12.5v-6z" stroke={color} strokeWidth={1.8} strokeLinejoin="round" />
+      <Path d="M17.5 8.5c1.5.3 2.5 1.5 2.5 3v3a1.5 1.5 0 01-1.5 1.5h-.3v2.3l-2.4-2.3" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  )
+}
+
 const tabs: { key: Tab; label: string; Icon: (p: { color: string }) => React.ReactElement }[] = [
   { key: 'Home', label: 'Home', Icon: IconHome },
   { key: 'Explore', label: 'Explore', Icon: IconExplore },
+  { key: 'Consultation', label: 'Consult', Icon: IconConsultation },
   { key: 'Services', label: 'Services', Icon: IconServices },
   { key: 'Projects', label: 'Projects', Icon: IconProjects },
 ]

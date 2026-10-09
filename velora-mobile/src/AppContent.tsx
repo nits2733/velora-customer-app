@@ -11,6 +11,7 @@ import ExploreScreen from './screens/ExploreScreen'
 import ServicesScreen from './screens/ServicesScreen'
 import ServiceDetailScreen from './screens/ServiceDetailScreen'
 import ServiceRequestScreen from './screens/ServiceRequestScreen'
+import ConsultationScreen from './screens/ConsultationScreen'
 import ProjectsScreen from './screens/ProjectsScreen'
 import ProjectDetailScreen from './screens/ProjectDetailScreen'
 import CategoryDetailScreen from './screens/CategoryDetailScreen'
@@ -41,7 +42,7 @@ import SupportScreen from './screens/SupportScreen'
 import PrivacyScreen from './screens/PrivacyScreen'
 import DeleteAccountScreen from './screens/DeleteAccountScreen'
 
-const TAB_SCREENS = ['Home', 'Explore', 'Services', 'Projects']
+const TAB_SCREENS = ['Home', 'Explore', 'Consultation', 'Services', 'Projects']
 const NAV_BAR_SCREENS = [
   ...TAB_SCREENS,
   'Profile',
@@ -54,7 +55,7 @@ const NAV_BAR_SCREENS = [
   'Terms',
   'DeleteAccount',
 ]
-type Tab = 'Home' | 'Explore' | 'Services' | 'Projects'
+type Tab = 'Home' | 'Explore' | 'Consultation' | 'Services' | 'Projects'
 
 export default function AppContent() {
   const router = useRouter()
@@ -77,6 +78,8 @@ export default function AppContent() {
         return <ServiceDetailScreen />
       case 'ServiceRequest':
         return <ServiceRequestScreen />
+      case 'Consultation':
+        return <ConsultationScreen onHamburger={() => setHamburgerVisible(true)} />
       case 'Projects':
         return <ProjectsScreen onHamburger={() => setHamburgerVisible(true)} />
       case 'ProjectDetail':
