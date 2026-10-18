@@ -4,6 +4,7 @@ import Svg, { Path } from 'react-native-svg'
 import { colors, fonts, fontSize, spacing, radii, fontWeight, shadows } from '../theme/tokens'
 import AppHeader from '../components/AppHeader'
 import SectionHeader from '../components/SectionHeader'
+import { useRouter } from '../navigation/router'
 import ImgFullHomeChoice from '../../assets/images/74adb.png'
 
 function IconChat() {
@@ -32,11 +33,8 @@ const STEPS = [
   { num: '03', title: 'Get a free estimate', desc: 'Walk away with a budget direction, no obligation.' },
 ]
 
-type Props = {
-  onHamburger?: () => void
-}
-
-export default function ConsultationScreen({ onHamburger }: Props) {
+export default function ConsultationScreen() {
+  const router = useRouter()
   const [topic, setTopic] = useState('')
 
   const whatsappUrl = useMemo(() => {
@@ -53,7 +51,7 @@ export default function ConsultationScreen({ onHamburger }: Props) {
 
   return (
     <View style={s.root}>
-      <AppHeader onHamburger={onHamburger} />
+      <AppHeader title="Free Consultation" showBack onBack={() => router.back()} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
 
         {/* ── Hero ────────────────────────────────────── */}

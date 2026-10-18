@@ -42,9 +42,10 @@ import SupportScreen from './screens/SupportScreen'
 import PrivacyScreen from './screens/PrivacyScreen'
 import DeleteAccountScreen from './screens/DeleteAccountScreen'
 
-const TAB_SCREENS = ['Home', 'Explore', 'Consultation', 'Services', 'Projects']
+const TAB_SCREENS = ['Home', 'Explore', 'Services', 'Projects']
 const NAV_BAR_SCREENS = [
   ...TAB_SCREENS,
+  'Consultation',
   'Profile',
   'MyQuotations',
   'QuotationDetail',
@@ -55,7 +56,7 @@ const NAV_BAR_SCREENS = [
   'Terms',
   'DeleteAccount',
 ]
-type Tab = 'Home' | 'Explore' | 'Consultation' | 'Services' | 'Projects'
+type Tab = 'Home' | 'Explore' | 'Services' | 'Projects'
 
 export default function AppContent() {
   const router = useRouter()
@@ -79,7 +80,7 @@ export default function AppContent() {
       case 'ServiceRequest':
         return <ServiceRequestScreen />
       case 'Consultation':
-        return <ConsultationScreen onHamburger={() => setHamburgerVisible(true)} />
+        return <ConsultationScreen />
       case 'Projects':
         return <ProjectsScreen onHamburger={() => setHamburgerVisible(true)} />
       case 'ProjectDetail':

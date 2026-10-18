@@ -353,6 +353,9 @@ export default function HomeScreen({ onHamburger }: Props) {
             <PrimaryButton label="Call Us" onPress={() => Linking.openURL('tel:+918210827121')} style={s.supportBtn} />
             <SecondaryButton label="WhatsApp" onPress={() => Linking.openURL('https://wa.me/918210827121')} style={s.supportBtn} />
           </View>
+          <Pressable style={s.consultLink} onPress={() => router.push('Consultation')}>
+            <Text style={s.consultLinkTxt}>Free consultation, let's begin →</Text>
+          </Pressable>
         </View>
 
         <View style={{ height: 32 }} />
@@ -459,4 +462,6 @@ const s = StyleSheet.create({
   supportSub: { fontFamily: fonts.body, fontSize: fontSize.tiny, color: colors.mutedText, marginBottom: spacing.sm, lineHeight: 16 },
   supportBtns: { flexDirection: 'row', gap: 8 },
   supportBtn: { flex: 1, paddingVertical: spacing.sm, paddingHorizontal: spacing.sm },
+  consultLink: { marginTop: spacing.sm, alignItems: 'center' },
+  consultLinkTxt: { fontFamily: fonts.body, fontSize: fontSize.caption, color: colors.darkText, fontWeight: fontWeight.semibold, textDecorationLine: 'underline' },
 })
