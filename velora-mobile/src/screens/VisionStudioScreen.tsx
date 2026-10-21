@@ -1,54 +1,134 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as ImagePicker from 'expo-image-picker'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native'
 import AppHeader from '../components/AppHeader'
 import PrimaryButton from '../components/PrimaryButton'
 import SecondaryButton from '../components/SecondaryButton'
 import { colors, fonts, fontSize, fontWeight, radii, spacing } from '../theme/tokens'
 import { useRouter } from '../navigation/router'
+import { visionStudioApi } from '../api'
+import { ApiError } from '../api/client'
+import type { RNUploadFile } from '../api/client'
+import type { VisionPreservation } from '../api/types'
 
-type Concept = {
-  name: string
-  description: string
-  palette: string[]
-  estimate: string
-  focus: string
+type Option = { value: string; label: string }
+
+const ROOM_TYPES: Option[] = [
+  { value: 'LIVING_ROOM', label: 'Living room' },
+  { value: 'BEDROOM', label: 'Bedroom' },
+  { value: 'KITCHEN', label: 'Kitchen' },
+  { value: 'BATHROOM', label: 'Bathroom' },
+  { value: 'DINING_ROOM', label: 'Dining room' },
+  { value: 'HOME_OFFICE', label: 'Home office' },
+  { value: 'OTHER', label: 'Other' },
+]
+
+const STYLES: Option[] = [
+  { value: 'MODERN_LUXURY', label: 'Modern luxury' },
+  { value: 'MINIMALIST', label: 'Minimalist' },
+  { value: 'SCANDINAVIAN', label: 'Scandinavian' },
+  { value: 'CONTEMPORARY', label: 'Contemporary' },
+  { value: 'TRADITIONAL_INDIAN', label: 'Traditional Indian' },
+  { value: 'JAPANDI', label: 'Japandi' },
+  { value: 'INDUSTRIAL', label: 'Industrial' },
+  { value: 'BOHEMIAN', label: 'Bohemian' },
+  { value: 'CLASSIC_LUXURY', label: 'Classic luxury' },
+]
+
+const PALETTES: Option[] = [
+  { value: 'BEIGE_WALNUT', label: 'Beige & walnut' },
+  { value: 'WHITE_OAK', label: 'White & oak' },
+  { value: 'SAGE_CREAM', label: 'Sage green & cream' },
+  { value: 'GREY_WHITE', label: 'Grey & white' },
+  { value: 'CHARCOAL_GOLD', label: 'Charcoal & gold' },
+  { value: 'EARTHY_NEUTRALS', label: 'Earthy neutrals' },
+  { value: 'CUSTOM', label: 'Custom' },
+]
+
+const BUDGET_TIERS: Option[] = [
+  { value: 'BUDGET_FRIENDLY', label: 'Budget-friendly' },
+  { value: 'MID_RANGE', label: 'Mid-range' },
+  { value: 'PREMIUM_LUXURY', label: 'Premium luxury' },
+]
+
+const PRESERVATION_OPTIONS: { value: VisionPreservation; label: string; desc: string }[] = [
+  { value: 'PRESERVE_ORIGINAL', label: 'Preserve original room', desc: 'Tries to keep architecture, windows, doors, proportions, camera angle, and layout close to the original.' },
+  { value: 'BALANCED', label: 'Balanced redesign', desc: "Keeps the room's structure recognizable while refreshing finishes and furniture more freely." },
+  { value: 'CREATIVE', label: 'Creative transformation', desc: 'Prioritizes the new design direction — layout and structure may shift more.' },
+]
+
+const FEATURE_CATALOG: { value: string; label: string; rooms?: string[] }[] = [
+  { value: 'SOFA_SEATING', label: 'Sofa and seating', rooms: ['LIVING_ROOM'] },
+  { value: 'TV_UNIT', label: 'TV unit', rooms: ['LIVING_ROOM', 'BEDROOM'] },
+  { value: 'WARDROBE_STORAGE', label: 'Wardrobes and storage', rooms: ['BEDROOM', 'HOME_OFFICE'] },
+  { value: 'LIGHTING', label: 'Lighting' },
+  { value: 'CURTAINS', label: 'Curtains' },
+  { value: 'FALSE_CEILING', label: 'False ceiling', rooms: ['LIVING_ROOM', 'BEDROOM', 'DINING_ROOM'] },
+  { value: 'INDOOR_PLANTS', label: 'Indoor plants' },
+  { value: 'WALL_PANELS', label: 'Wall panels' },
+  { value: 'FLOORING', label: 'Flooring' },
+  { value: 'DECORATIVE_ELEMENTS', label: 'Decorative elements' },
+]
+
+const ADDITIONAL_INSTRUCTIONS_MAX = 400
+const POLL_INTERVAL_MS = 3000
+const POLL_TIMEOUT_MS = 90000
+
+type GenStatus = 'idle' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+
+function isValidImageUrl(url?: string | null): url is string {
+  return Boolean(url) && /^https?:\/\//.test(url as string)
 }
-
-const goals = ['More storage', 'Warmer lighting', 'Kid-friendly', 'Work-from-home', 'Better flow', 'Premium finishes']
-const budgets = ['Under ₹10L', '₹10L–₹20L', '₹20L–₹35L', '₹35L+', 'Help me plan']
-const styles = ['Warm contemporary', 'Clean minimal', 'Modern Indian', 'Bold eclectic']
-const hotspots = [
-  { id: 'kitchen', label: 'Kitchen zone', left: '20%', top: '48%', question: 'How much might this kitchen cost?', answer: 'A modular kitchen here would typically begin around ₹3L and move upward based on storage, hardware, and countertop choices.' },
-  { id: 'wall', label: 'Partition wall', left: '72%', top: '28%', question: 'Can this wall be removed?', answer: 'It may be possible, but a site visit is needed to check whether it is structural and confirm building permissions.' },
-  { id: 'wood', label: 'Wood finish', left: '67%', top: '68%', question: 'Show this with darker wood.', answer: 'A walnut or smoked-oak direction would add contrast while keeping the room warm. We have saved this as your design preference.' },
-]
-
-const concepts: Concept[] = [
-  { name: 'Soft Modern', description: 'Calm neutrals, concealed storage, and layered warm light for an easy everyday room.', palette: ['#e9dfcf', '#ad9276', '#403a34'], estimate: '₹12L–₹18L', focus: 'Storage + warm lighting' },
-  { name: 'Earth & Line', description: 'Clean planning with natural textures, darker joinery, and a stronger architectural edge.', palette: ['#d8c8af', '#765f49', '#252725'], estimate: '₹16L–₹24L', focus: 'Flow + premium finishes' },
-  { name: 'Bright Collective', description: 'Flexible furniture, durable finishes, and playful details designed around family life.', palette: ['#f5ead7', '#d18a62', '#50605c'], estimate: '₹10L–₹16L', focus: 'Kid-friendly + flexible use' },
-]
 
 export default function VisionStudioScreen() {
   const router = useRouter()
   const [imageUri, setImageUri] = useState('')
-  const [selectedGoals, setSelectedGoals] = useState<string[]>(['More storage'])
-  const [budget, setBudget] = useState('')
-  const [style, setStyle] = useState('')
-  const [selectedConcept, setSelectedConcept] = useState(0)
-  const [activeHotspot, setActiveHotspot] = useState<typeof hotspots[number] | null>(null)
+  const [uploadFile, setUploadFile] = useState<RNUploadFile | null>(null)
   const [imageError, setImageError] = useState('')
 
-  const concept = concepts[selectedConcept]
-  const conceptDirection = useMemo(() => `${concept.name}: ${concept.description} Budget direction: ${budget || 'to be planned'}. Goals: ${selectedGoals.join(', ') || 'explore options'}.`, [budget, concept, selectedGoals])
+  const [roomType, setRoomType] = useState('')
+  const [style, setStyle] = useState('')
+  const [colorPalette, setColorPalette] = useState('')
+  const [customColorDescription, setCustomColorDescription] = useState('')
+  const [budgetTier, setBudgetTier] = useState('')
+  const [features, setFeatures] = useState<string[]>([])
+  const [preservation, setPreservation] = useState<VisionPreservation>('BALANCED')
+  const [additionalInstructions, setAdditionalInstructions] = useState('')
+  const [advancedOpen, setAdvancedOpen] = useState(false)
 
-  const toggleGoal = (goal: string) => {
-    setSelectedGoals(current => current.includes(goal) ? current.filter(item => item !== goal) : [...current, goal])
+  const [validationError, setValidationError] = useState('')
+  const [genStatus, setGenStatus] = useState<GenStatus>('idle')
+  const [genError, setGenError] = useState('')
+  const [resultImageUrl, setResultImageUrl] = useState('')
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const availableFeatures = useMemo(
+    () => FEATURE_CATALOG.filter(f => !f.rooms || !roomType || f.rooms.includes(roomType)),
+    [roomType]
+  )
+
+  const stopPolling = () => {
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = null
+  }
+
+  useEffect(() => () => stopPolling(), [])
+
+  // Dropping features that no longer apply when the room type changes
+  // (e.g. "Wardrobes" selected, then room switched to Kitchen).
+  useEffect(() => {
+    setFeatures(current => current.filter(value => availableFeatures.some(f => f.value === value)))
+  }, [availableFeatures])
+
+  const toggleFeature = (value: string) => {
+    setFeatures(current => current.includes(value) ? current.filter(f => f !== value) : [...current, value])
   }
 
   const pickRoomPhoto = async () => {
     setImageError('')
+    setGenError('')
+    setGenStatus('idle')
+    setResultImageUrl('')
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
       setImageError('Photo library permission is required to add a room photo.')
@@ -58,62 +138,267 @@ export default function VisionStudioScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.9,
     })
-    if (!result.canceled) setImageUri(result.assets[0].uri)
+    if (result.canceled) return
+    const asset = result.assets[0]
+    setImageUri(asset.uri)
+    setUploadFile({
+      uri: asset.uri,
+      name: asset.fileName || 'room.jpg',
+      type: asset.mimeType || 'image/jpeg',
+    })
+  }
+
+  const validate = (): string | null => {
+    if (!uploadFile) return 'Add a room photo to continue.'
+    if (!roomType) return 'Select a room type.'
+    if (!style) return 'Select a design style.'
+    if (!colorPalette) return 'Select a color palette.'
+    if (colorPalette === 'CUSTOM' && !customColorDescription.trim()) return 'Describe your custom color preference.'
+    if (!budgetTier) return 'Select a visual direction.'
+    if (additionalInstructions.length > ADDITIONAL_INSTRUCTIONS_MAX) return `Additional instructions must be under ${ADDITIONAL_INSTRUCTIONS_MAX} characters.`
+    return null
+  }
+
+  const mapError = (err: unknown): string => {
+    if (err instanceof ApiError) {
+      if (err.status === 400) return err.message || 'Check your selections and try again.'
+      if (err.status === 429) return 'Too many requests right now. Please wait a moment and try again.'
+      if (err.status === 402) return "We're temporarily out of generation credits. Please try again later."
+      if (err.status >= 500) return 'The design engine ran into a problem. Please try again.'
+      return err.message || 'Something went wrong. Please try again.'
+    }
+    return 'Network error. Check your connection and try again.'
+  }
+
+  const generateTransformation = async () => {
+    const error = validate()
+    if (error) {
+      setValidationError(error)
+      return
+    }
+    if (!uploadFile) return
+    setValidationError('')
+    stopPolling()
+    setGenError('')
+    setResultImageUrl('')
+    setGenStatus('PROCESSING')
+
+    const preferences = {
+      roomType,
+      style,
+      colorPalette,
+      customColorDescription: colorPalette === 'CUSTOM' ? customColorDescription.trim() : undefined,
+      budgetTier,
+      features,
+      preservation,
+      additionalInstructions: additionalInstructions.trim() || undefined,
+    }
+
+    const handleSettled = (status: 'COMPLETED' | 'FAILED', resultUrl?: string | null, errorMessage?: string | null) => {
+      if (status === 'COMPLETED') {
+        if (!isValidImageUrl(resultUrl)) {
+          setGenStatus('FAILED')
+          setGenError('Received an invalid image from the design engine. Please try again.')
+          return
+        }
+        setResultImageUrl(resultUrl)
+        setGenStatus('COMPLETED')
+        return
+      }
+      setGenStatus('FAILED')
+      setGenError(errorMessage || 'Generation failed. Please try again.')
+    }
+
+    try {
+      const job = await visionStudioApi.transform(uploadFile, preferences)
+      if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+        handleSettled(job.status, job.resultImageUrl, job.error)
+        return
+      }
+      const startedAt = Date.now()
+      pollRef.current = setInterval(async () => {
+        if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+          stopPolling()
+          setGenStatus('FAILED')
+          setGenError('This is taking longer than expected. Please try again.')
+          return
+        }
+        try {
+          const polled = await visionStudioApi.getTransform(job.id)
+          if (polled.status === 'COMPLETED' || polled.status === 'FAILED') {
+            stopPolling()
+            handleSettled(polled.status, polled.resultImageUrl, polled.error)
+          }
+        } catch (err) {
+          stopPolling()
+          setGenStatus('FAILED')
+          setGenError(mapError(err))
+        }
+      }, POLL_INTERVAL_MS)
+    } catch (err) {
+      setGenStatus('FAILED')
+      setGenError(mapError(err))
+    }
   }
 
   const createBrief = () => {
     router.push('StartProject', {
-      presetStyle: style || concept.name,
-      visionImageUri: imageUri,
-      visionBrief: conceptDirection,
-      visionGoals: selectedGoals,
-      visionBudget: budget,
+      presetStyle: style,
+      visionImageUri: resultImageUrl || imageUri,
+      visionRoomType: roomType,
+      visionStyle: style,
+      visionColorPalette: colorPalette,
+      visionCustomColorDescription: customColorDescription || undefined,
+      visionBudgetTier: budgetTier,
+      visionFeatures: features,
+      visionPreservation: preservation,
+      visionAdditionalInstructions: additionalInstructions || undefined,
     })
   }
+
+  const reset = () => {
+    stopPolling()
+    setImageUri('')
+    setUploadFile(null)
+    setRoomType('')
+    setStyle('')
+    setColorPalette('')
+    setCustomColorDescription('')
+    setBudgetTier('')
+    setFeatures([])
+    setPreservation('BALANCED')
+    setAdditionalInstructions('')
+    setAdvancedOpen(false)
+    setValidationError('')
+    setGenStatus('idle')
+    setGenError('')
+    setResultImageUrl('')
+  }
+
+  const isGenerating = genStatus === 'PROCESSING'
 
   return (
     <View style={s.root}>
       <AppHeader title="Vision Studio" showBack onBack={router.back} />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
         <Text style={s.eyebrow}>YOUR ROOM, REIMAGINED</Text>
-        <Text style={s.title}>Turn one photo into a design direction.</Text>
-        <Text style={s.subtitle}>Upload a room, tell us what matters, and shape a brief you can send to a Velora professional.</Text>
+        <Text style={s.title}>See your own room, redesigned.</Text>
+        <Text style={s.subtitle}>Upload a photo of your room, choose a direction, and let AI generate a redesigned version.</Text>
 
         <Pressable style={s.canvas} onPress={pickRoomPhoto} accessibilityLabel="Upload a room photo">
           {imageUri ? <Image source={{ uri: imageUri }} style={s.roomImage} /> : <View style={s.emptyCanvas}><Text style={s.uploadIcon}>＋</Text><Text style={s.canvasTitle}>Add a room photo</Text><Text style={s.canvasHint}>Use a clear photo with the room in view</Text></View>}
-          {Boolean(imageUri) && <View style={s.canvasShade} />}
-          {Boolean(imageUri) && hotspots.map(hotspot => (
-            <Pressable key={hotspot.id} style={[s.hotspot, { left: hotspot.left as any, top: hotspot.top as any }]} onPress={() => setActiveHotspot(hotspot)} accessibilityLabel={hotspot.label}>
-              <View style={s.hotspotDot} /><Text style={s.hotspotLabel}>{hotspot.label}</Text>
-            </Pressable>
-          ))}
           {Boolean(imageUri) && <View style={s.changePhoto}><Text style={s.changePhotoText}>Change photo</Text></View>}
         </Pressable>
         {imageError ? <Text style={s.error}>{imageError}</Text> : null}
 
-        {activeHotspot && (
-          <View style={s.answerCard}>
-            <View style={s.answerHeader}><Text style={s.answerQuestion}>{activeHotspot.question}</Text><Pressable onPress={() => setActiveHotspot(null)}><Text style={s.close}>×</Text></Pressable></View>
-            <Text style={s.answer}>{activeHotspot.answer}</Text>
-            <Text style={s.answerHint}>We will confirm this during the professional consultation.</Text>
-          </View>
+        {Boolean(imageUri) && (
+          <>
+            <Text style={s.sectionLabel}>ROOM TYPE</Text>
+            <View style={s.chips}>{ROOM_TYPES.map(opt => <Pressable key={opt.value} onPress={() => setRoomType(opt.value)} style={[s.chip, roomType === opt.value && s.chipActive]}><Text style={[s.chipText, roomType === opt.value && s.chipTextActive]}>{opt.label}</Text></Pressable>)}</View>
+
+            <Text style={s.sectionLabel}>DESIGN STYLE</Text>
+            <View style={s.chips}>{STYLES.map(opt => <Pressable key={opt.value} onPress={() => setStyle(opt.value)} style={[s.chip, style === opt.value && s.chipActive]}><Text style={[s.chipText, style === opt.value && s.chipTextActive]}>{opt.label}</Text></Pressable>)}</View>
+
+            <Pressable style={s.advancedToggle} onPress={() => setAdvancedOpen(v => !v)}>
+              <Text style={s.advancedToggleText}>{advancedOpen ? 'Hide advanced customization' : 'Show advanced customization'}</Text>
+              <Text style={s.advancedToggleChevron}>{advancedOpen ? '▲' : '▼'}</Text>
+            </Pressable>
+
+            {advancedOpen && (
+              <>
+                <Text style={s.sectionLabel}>COLOR PALETTE</Text>
+                <View style={s.chips}>{PALETTES.map(opt => <Pressable key={opt.value} onPress={() => setColorPalette(opt.value)} style={[s.chip, colorPalette === opt.value && s.chipActive]}><Text style={[s.chipText, colorPalette === opt.value && s.chipTextActive]}>{opt.label}</Text></Pressable>)}</View>
+                {colorPalette === 'CUSTOM' && (
+                  <TextInput
+                    style={s.input}
+                    placeholder="Describe your preferred colors, e.g. dusty rose and brass"
+                    placeholderTextColor={colors.mutedText}
+                    value={customColorDescription}
+                    onChangeText={setCustomColorDescription}
+                    maxLength={120}
+                  />
+                )}
+
+                <Text style={s.sectionLabel}>VISUAL DIRECTION</Text>
+                <Text style={s.hint}>Influences materials and finishes shown — not a renovation cost estimate.</Text>
+                <View style={s.chips}>{BUDGET_TIERS.map(opt => <Pressable key={opt.value} onPress={() => setBudgetTier(opt.value)} style={[s.chip, budgetTier === opt.value && s.chipActive]}><Text style={[s.chipText, budgetTier === opt.value && s.chipTextActive]}>{opt.label}</Text></Pressable>)}</View>
+
+                <Text style={s.sectionLabel}>FEATURES TO INCLUDE</Text>
+                <View style={s.chips}>{availableFeatures.map(opt => <Pressable key={opt.value} onPress={() => toggleFeature(opt.value)} style={[s.chip, features.includes(opt.value) && s.chipActive]}><Text style={[s.chipText, features.includes(opt.value) && s.chipTextActive]}>{features.includes(opt.value) ? '✓ ' : ''}{opt.label}</Text></Pressable>)}</View>
+
+                <Text style={s.sectionLabel}>ROOM PRESERVATION</Text>
+                <View style={s.preservationList}>
+                  {PRESERVATION_OPTIONS.map(opt => (
+                    <Pressable key={opt.value} onPress={() => setPreservation(opt.value)} style={[s.preservationCard, preservation === opt.value && s.preservationCardActive]}>
+                      <Text style={[s.preservationLabel, preservation === opt.value && s.preservationTextActive]}>{opt.label}</Text>
+                      <Text style={[s.preservationDesc, preservation === opt.value && s.preservationTextActive]}>{opt.desc}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <Text style={s.hint}>Results vary by room and AI model — this is a direction, not a guarantee.</Text>
+
+                <Text style={s.sectionLabel}>ADDITIONAL INSTRUCTIONS (OPTIONAL)</Text>
+                <TextInput
+                  style={[s.input, s.textArea]}
+                  placeholder="e.g. Keep the existing flooring and windows. Add a beige L-shaped sofa, a floating walnut TV unit, and warm lighting."
+                  placeholderTextColor={colors.mutedText}
+                  value={additionalInstructions}
+                  onChangeText={setAdditionalInstructions}
+                  multiline
+                  numberOfLines={4}
+                  maxLength={ADDITIONAL_INSTRUCTIONS_MAX}
+                />
+                <Text style={s.charCount}>{additionalInstructions.length}/{ADDITIONAL_INSTRUCTIONS_MAX}</Text>
+              </>
+            )}
+
+            {validationError ? <Text style={s.error}>{validationError}</Text> : null}
+
+            <PrimaryButton
+              label={isGenerating ? 'Generating…' : 'Generate design'}
+              onPress={generateTransformation}
+              disabled={isGenerating}
+            />
+
+            {isGenerating && (
+              <View style={s.statusCard}>
+                <ActivityIndicator color={colors.darkText} />
+                <Text style={s.statusText}>Redesigning your room — this can take up to a minute.</Text>
+              </View>
+            )}
+
+            {genStatus === 'FAILED' && genError ? (
+              <View style={s.errorCard}>
+                <Text style={s.error}>{genError}</Text>
+                <SecondaryButton label="Retry" onPress={generateTransformation} />
+              </View>
+            ) : null}
+
+            {genStatus === 'COMPLETED' && resultImageUrl ? (
+              <View style={s.resultBlock}>
+                <Text style={s.sectionLabel}>BEFORE &amp; AFTER</Text>
+                <View style={s.compareRow}>
+                  <View style={s.compareCol}>
+                    <Image source={{ uri: imageUri }} style={s.compareImage} />
+                    <Text style={s.compareLabel}>Before</Text>
+                  </View>
+                  <View style={s.compareCol}>
+                    <Image source={{ uri: resultImageUrl }} style={s.compareImage} />
+                    <Text style={s.compareLabel}>After</Text>
+                  </View>
+                </View>
+              </View>
+            ) : null}
+          </>
         )}
 
-        <Text style={s.sectionLabel}>WHAT SHOULD THIS ROOM DO BETTER?</Text>
-        <View style={s.chips}>{goals.map(goal => <Pressable key={goal} onPress={() => toggleGoal(goal)} style={[s.chip, selectedGoals.includes(goal) && s.chipActive]}><Text style={[s.chipText, selectedGoals.includes(goal) && s.chipTextActive]}>{selectedGoals.includes(goal) ? '✓ ' : ''}{goal}</Text></Pressable>)}</View>
-
-        <Text style={s.sectionLabel}>YOUR INVESTMENT DIRECTION</Text>
-        <View style={s.chips}>{budgets.map(option => <Pressable key={option} onPress={() => setBudget(option)} style={[s.chip, budget === option && s.chipActive]}><Text style={[s.chipText, budget === option && s.chipTextActive]}>{option}</Text></Pressable>)}</View>
-
-        <Text style={s.sectionLabel}>PICK A DESIGN DIRECTION</Text>
-        <View style={s.conceptRail}>{concepts.map((item, index) => <Pressable key={item.name} onPress={() => setSelectedConcept(index)} style={[s.conceptCard, selectedConcept === index && s.conceptCardActive]}><View style={s.swatches}>{item.palette.map(color => <View key={color} style={[s.swatch, { backgroundColor: color }]} />)}</View><Text style={[s.conceptName, selectedConcept === index && s.conceptTextActive]}>{item.name}</Text><Text style={[s.conceptDescription, selectedConcept === index && s.conceptTextActive]}>{item.description}</Text><Text style={[s.conceptMeta, selectedConcept === index && s.conceptTextActive]}>{item.estimate} · {item.focus}</Text></Pressable>)}</View>
-
-        <Text style={s.sectionLabel}>MAKE IT YOURS</Text>
-        <View style={s.chips}>{styles.map(option => <Pressable key={option} onPress={() => setStyle(option)} style={[s.chip, style === option && s.chipActive]}><Text style={[s.chipText, style === option && s.chipTextActive]}>{option}</Text></Pressable>)}</View>
-
-        <View style={s.briefCard}><Text style={s.briefEyebrow}>LIVE CONSULTATION BRIEF</Text><Text style={s.briefTitle}>{concept.name}</Text><Text style={s.briefText}>{conceptDirection}</Text></View>
-        <PrimaryButton label="Use this concept for my project" onPress={createBrief} />
-        <SecondaryButton label="Start over" onPress={() => { setImageUri(''); setActiveHotspot(null); setSelectedGoals(['More storage']); setBudget(''); setStyle(''); setSelectedConcept(0) }} />
+        {genStatus === 'COMPLETED' && resultImageUrl && (
+          <>
+            <PrimaryButton label="Use this for my project" onPress={createBrief} />
+            <SecondaryButton label="Generate another variation" onPress={generateTransformation} />
+            <SecondaryButton label="Start over" onPress={reset} />
+          </>
+        )}
       </ScrollView>
     </View>
   )
@@ -131,36 +416,34 @@ const s = StyleSheet.create({
   uploadIcon: { color: colors.darkText, fontSize: 42, fontWeight: '300' },
   canvasTitle: { color: colors.darkText, fontFamily: fonts.heading, fontSize: fontSize.h4, marginTop: spacing.sm },
   canvasHint: { color: colors.mutedText, fontFamily: fonts.body, fontSize: fontSize.caption, marginTop: spacing.xs },
-  canvasShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20, 18, 14, 0.16)' },
   changePhoto: { position: 'absolute', right: spacing.md, bottom: spacing.md, backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.round },
   changePhotoText: { color: colors.darkText, fontFamily: fonts.body, fontSize: fontSize.caption, fontWeight: fontWeight.semibold },
-  hotspot: { position: 'absolute', alignItems: 'center', transform: [{ translateX: -12 }, { translateY: -12 }] },
-  hotspotDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accent, borderWidth: 3, borderColor: colors.white },
-  hotspotLabel: { backgroundColor: colors.darkText, color: colors.white, fontFamily: fonts.body, fontSize: 10, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 3, marginTop: 4 },
-  answerCard: { backgroundColor: colors.darkText, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.sm },
-  answerHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-  answerQuestion: { color: colors.white, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold, flex: 1 },
-  close: { color: colors.white, fontSize: 24, lineHeight: 20 },
-  answer: { color: colors.white, fontFamily: fonts.body, fontSize: fontSize.label, lineHeight: 21 },
-  answerHint: { color: 'rgba(255,255,255,0.6)', fontFamily: fonts.body, fontSize: fontSize.caption },
   sectionLabel: { color: colors.mutedText, fontFamily: fonts.body, fontSize: fontSize.tiny, letterSpacing: 0.8, fontWeight: fontWeight.semibold, marginTop: spacing.md },
+  hint: { color: colors.mutedText, fontFamily: fonts.body, fontSize: fontSize.caption, lineHeight: 17, marginTop: -spacing.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, borderRadius: radii.round, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   chipActive: { backgroundColor: colors.darkText, borderColor: colors.darkText },
   chipText: { color: colors.darkText, fontFamily: fonts.body, fontSize: fontSize.label },
   chipTextActive: { color: colors.white },
-  conceptRail: { gap: spacing.md },
-  conceptCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.sm },
-  conceptCardActive: { backgroundColor: colors.darkText, borderColor: colors.darkText },
-  swatches: { flexDirection: 'row', gap: spacing.xs },
-  swatch: { width: 28, height: 12, borderRadius: 2 },
-  conceptName: { color: colors.darkText, fontFamily: fonts.heading, fontSize: fontSize.h4, fontWeight: fontWeight.semibold },
-  conceptDescription: { color: colors.mutedText, fontFamily: fonts.body, fontSize: fontSize.label, lineHeight: 19 },
-  conceptMeta: { color: colors.accent, fontFamily: fonts.body, fontSize: fontSize.caption, fontWeight: fontWeight.semibold },
-  conceptTextActive: { color: colors.white },
-  briefCard: { backgroundColor: colors.cardBg2, borderLeftWidth: 3, borderLeftColor: colors.accent, padding: spacing.lg, gap: spacing.sm, borderRadius: radii.md },
-  briefEyebrow: { color: colors.accent, fontFamily: fonts.body, fontSize: fontSize.tiny, letterSpacing: 0.8, fontWeight: fontWeight.semibold },
-  briefTitle: { color: colors.darkText, fontFamily: fonts.heading, fontSize: fontSize.h3, fontWeight: fontWeight.semibold },
-  briefText: { color: colors.mutedText, fontFamily: fonts.body, fontSize: fontSize.label, lineHeight: 20 },
+  advancedToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm, paddingVertical: spacing.sm, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border },
+  advancedToggleText: { color: colors.darkText, fontFamily: fonts.body, fontSize: fontSize.label, fontWeight: fontWeight.semibold },
+  advancedToggleChevron: { color: colors.mutedText, fontFamily: fonts.body, fontSize: fontSize.caption },
+  input: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, borderRadius: radii.md, padding: spacing.md, fontFamily: fonts.body, fontSize: fontSize.label, color: colors.darkText },
+  textArea: { minHeight: 90, textAlignVertical: 'top' },
+  charCount: { color: colors.mutedText, fontFamily: fonts.body, fontSize: fontSize.tiny, alignSelf: 'flex-end', marginTop: -spacing.sm },
+  preservationList: { gap: spacing.sm },
+  preservationCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, borderRadius: radii.md, padding: spacing.md, gap: 4 },
+  preservationCardActive: { backgroundColor: colors.darkText, borderColor: colors.darkText },
+  preservationLabel: { color: colors.darkText, fontFamily: fonts.body, fontSize: fontSize.label, fontWeight: fontWeight.semibold },
+  preservationDesc: { color: colors.mutedText, fontFamily: fonts.body, fontSize: fontSize.caption, lineHeight: 17 },
+  preservationTextActive: { color: colors.white },
+  statusCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.cardBg2, borderRadius: radii.md, padding: spacing.lg },
+  statusText: { flex: 1, color: colors.darkText, fontFamily: fonts.body, fontSize: fontSize.label, lineHeight: 20 },
+  errorCard: { gap: spacing.sm },
+  resultBlock: { gap: spacing.sm },
+  compareRow: { flexDirection: 'row', gap: spacing.sm },
+  compareCol: { flex: 1, gap: spacing.xs },
+  compareImage: { width: '100%', height: 200, borderRadius: radii.lg, backgroundColor: colors.cardBg },
+  compareLabel: { textAlign: 'center', color: colors.mutedText, fontFamily: fonts.body, fontSize: fontSize.caption, fontWeight: fontWeight.semibold },
   error: { color: colors.error, fontFamily: fonts.body, fontSize: fontSize.caption },
 })

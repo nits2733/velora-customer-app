@@ -319,6 +319,30 @@ export type MediaUploadResponse = {
   height: number
 }
 
+// ─── Vision Studio (AI room transformation) ───────────
+
+export type VisionTransformStatus = 'PROCESSING' | 'COMPLETED' | 'FAILED'
+
+export type VisionPreservation = 'PRESERVE_ORIGINAL' | 'BALANCED' | 'CREATIVE'
+
+export type VisionTransformRequest = {
+  roomType: string
+  style: string
+  colorPalette: string
+  customColorDescription?: string
+  budgetTier: string
+  features: string[]
+  preservation: VisionPreservation
+  additionalInstructions?: string
+}
+
+export type VisionTransformResponse = {
+  id: string
+  status: VisionTransformStatus
+  resultImageUrl?: string | null
+  error?: string | null
+}
+
 // ─── Pagination ────────────────────────────────────────
 
 export type PageResponse<T> = {
