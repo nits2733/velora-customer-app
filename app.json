@@ -33,7 +33,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Velora uses your location to show your area and match you with nearby professionals."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
