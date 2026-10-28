@@ -9,10 +9,11 @@ interface Props {
   saved: boolean;
   onToggle: () => void;
   style?: StyleProp<ViewStyle>;
+  icon?: 'heart' | 'bookmark';
 }
 
 /** Save toggle with a quick spring "pop" when the heart fills. */
-export function HeartButton({ saved, onToggle, style }: Props) {
+export function HeartButton({ saved, onToggle, style, icon = 'heart' }: Props) {
   const pop = useSharedValue(1);
   const iconStyle = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
 
@@ -37,7 +38,11 @@ export function HeartButton({ saved, onToggle, style }: Props) {
       accessibilityLabel={saved ? 'Remove from saved' : 'Save'}
     >
       <Animated.View style={iconStyle}>
-        <Ionicons name={saved ? 'heart' : 'heart-outline'} size={19} color={saved ? colors.accentRed : colors.ink} />
+        <Ionicons
+          name={saved ? icon : (`${icon}-outline` as 'heart-outline')}
+          size={19}
+          color={saved ? (icon === 'heart' ? colors.accentRed : colors.forest) : colors.ink}
+        />
       </Animated.View>
     </Pressable>
   );

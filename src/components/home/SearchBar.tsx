@@ -1,17 +1,40 @@
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { StyleSheet, TextInput } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { useState } from 'react';
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { AppText } from '@/components/ui/AppText';
 import { Pressable } from '@/components/ui/Pressable';
 import { colors, fonts, radius, screenGutter, shadow } from '@/theme';
 
-const PLACEHOLDER = 'Italian Quartz Kitchen Island';
+interface Props {
+  /** Controlled mode (Explore). Omit for the Home launcher behaviour: submit opens Explore. */
+  value?: string;
+  onChangeText?: (text: string) => void;
+  placeholder?: string;
+  filterCount?: number;
+  onFilterPress?: () => void;
+  /** Set false on screens that have no filter sheet (Services). */
+  showFilter?: boolean;
+  /** Overrides the default a11y label. */
+  accessibilityLabel?: string;
+}
 
-export function SearchBar() {
-  const [q, setQ] = useState('');
+const DEFAULT_PLACEHOLDER = 'Try "Italian Quartz Kitchen Island"';
+
+export function SearchBar({
+  value,
+  onChangeText,
+  placeholder = DEFAULT_PLACEHOLDER,
+  filterCount = 0,
+  onFilterPress,
+  showFilter = true,
+  accessibilityLabel = 'Search designs and services',
+}: Props) {
+  const controlled = onChangeText !== undefined;
+  const [local, setLocal] = useState('');
   const focus = useSharedValue(0);
-  const submit = () => router.push('/explore');
+  const goExplore = () => router.push('/explore');
 
   const wrapAnim = useAnimatedStyle(() => ({
     borderColor: interpolateColor(focus.value, [0, 1], ['rgba(31,77,58,0)', colors.forest]),
@@ -22,23 +45,42 @@ export function SearchBar() {
     <Animated.View style={[styles.wrap, wrapAnim]}>
       <Feather name="search" size={18} color={colors.inkSoft} />
       <TextInput
-        value={q}
-        onChangeText={setQ}
-        onSubmitEditing={submit}
+        value={controlled ? value : local}
+        onChangeText={controlled ? onChangeText : setLocal}
+        onSubmitEditing={controlled ? undefined : goExplore}
         onFocus={() => focus.set(withTiming(1, { duration: 200 }))}
         onBlur={() => focus.set(withTiming(0, { duration: 200 }))}
         returnKeyType="search"
-        placeholder={`Try "${PLACEHOLDER}"`}
+        placeholder={placeholder}
         placeholderTextColor={colors.inkMuted}
         style={styles.input}
-        accessibilityLabel="Search designs and services"
+        numberOfLines={1}
+        accessibilityLabel={accessibilityLabel}
       />
-      <Pressable style={styles.round} accessibilityRole="button" accessibilityLabel="Voice search">
-        <Feather name="mic" size={16} color={colors.ink} />
-      </Pressable>
-      <Pressable style={[styles.round, styles.filter]} accessibilityRole="button" accessibilityLabel="Filters" onPress={submit}>
+      {controlled && value ? (
+        <Pressable style={styles.round} accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => onChangeText?.('')}>
+          <Feather name="x" size={16} color={colors.ink} />
+        </Pressable>
+      ) : showFilter ? (
+        <Pressable style={styles.round} accessibilityRole="button" accessibilityLabel="Voice search">
+          <Feather name="mic" size={16} color={colors.ink} />
+        </Pressable>
+      ) : null}
+      {showFilter ? <Pressable
+        style={[styles.round, styles.filter]}
+        accessibilityRole="button"
+        accessibilityLabel={filterCount ? `Filters, ${filterCount} active` : 'Filters'}
+        onPress={onFilterPress ?? goExplore}
+      >
         <Feather name="sliders" size={16} color={colors.white} />
-      </Pressable>
+        {filterCount > 0 ? (
+          <View style={styles.badge}>
+            <AppText variant="caption" color={colors.white} style={styles.badgeText}>
+              {filterCount}
+            </AppText>
+          </View>
+        ) : null}
+      </Pressable> : null}
     </Animated.View>
   );
 }
@@ -67,4 +109,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filter: { backgroundColor: colors.forest },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: colors.accentRed,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { fontSize: 10, lineHeight: 13, fontFamily: fonts.sansBold },
 });

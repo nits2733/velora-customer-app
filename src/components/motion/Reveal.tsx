@@ -15,6 +15,7 @@ import Animated, {
 interface ScrollState {
   scrollY: SharedValue<number>;
   viewH: SharedValue<number>;
+  contentH: SharedValue<number>;
 }
 
 const ScrollCtx = createContext<ScrollState | null>(null);
@@ -29,13 +30,23 @@ const TRIGGER_MARGIN = 48;
 export function useRevealScroll() {
   const scrollY = useSharedValue(0);
   const viewH = useSharedValue(0);
+  const contentH = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
   const onLayout = (e: LayoutChangeEvent) => {
     viewH.set(e.nativeEvent.layout.height);
   };
-  return { value: { scrollY, viewH } satisfies ScrollState, onScroll, onLayout, Provider: ScrollCtx.Provider };
+  const onContentSizeChange = (_w: number, h: number) => {
+    contentH.set(h);
+  };
+  return {
+    value: { scrollY, viewH, contentH } satisfies ScrollState,
+    onScroll,
+    onLayout,
+    onContentSizeChange,
+    Provider: ScrollCtx.Provider,
+  };
 }
 
 interface RevealProps {

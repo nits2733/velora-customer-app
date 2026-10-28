@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { AppText } from '@/components/ui/AppText';
+import { Badge } from '@/components/ui/Badge';
 import { Pressable } from '@/components/ui/Pressable';
 import { RemoteImage } from '@/components/ui/RemoteImage';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -14,9 +15,14 @@ const IMAGE_H = 118;
 interface Props {
   rooms: Category[] | null;
   loading: boolean;
+  /** Overrides the default navigation to Explore (used on Explore itself). */
+  onSelect?: (room: Category) => void;
+  /** Optional design counts keyed by category name. */
+  counts?: Record<string, number>;
+  selected?: string;
 }
 
-export function RoomGrid({ rooms, loading }: Props) {
+export function RoomGrid({ rooms, loading, onSelect, counts, selected }: Props) {
   const { width: screenW } = useWindowDimensions();
   const cardW = (screenW - screenGutter * 2 - GAP) / 2;
 
@@ -35,8 +41,8 @@ export function RoomGrid({ rooms, loading }: Props) {
       {(rooms ?? []).map((room) => (
         <Pressable
           key={room.id}
-          style={[styles.card, { width: cardW }]}
-          onPress={() => router.push('/explore')}
+          style={[styles.card, { width: cardW }, selected === room.name && styles.selected]}
+          onPress={() => (onSelect ? onSelect(room) : router.push('/explore'))}
           accessibilityRole="button"
           accessibilityLabel={`${room.name} designs`}
         >
@@ -46,6 +52,9 @@ export function RoomGrid({ rooms, loading }: Props) {
             height={IMAGE_H}
             style={styles.image}
           />
+          {counts?.[room.name] ? (
+            <Badge label={`${counts[room.name]} Designs`} style={styles.count} />
+          ) : null}
           <View style={styles.body}>
             <AppText variant="title" numberOfLines={1}>
               {room.name}
@@ -65,4 +74,6 @@ const styles = StyleSheet.create({
   card: { borderRadius: radius.lg, backgroundColor: colors.surface, overflow: 'hidden', ...shadow.card },
   image: { width: '100%', height: IMAGE_H },
   body: { padding: 12, gap: 2 },
+  selected: { borderWidth: 2, borderColor: colors.forest },
+  count: { position: 'absolute', left: 10, top: IMAGE_H - 34 },
 });
