@@ -1,0 +1,18 @@
+export const colors = {
+  bg: '#F7F6EF',
+  surface: '#FFFFFF',
+  surfaceMuted: '#EEF0EA',
+  border: '#E6E4DA',
+  ink: '#16201B',
+  inkSoft: '#46524B',
+  inkMuted: '#6F7A73',
+  forest: '#1F4D3A',
+  forestDeep: '#143626',
+  forestSoft: '#DCE9DA',
+  mint: '#BFE3CF',
+  clay: '#6B2E1F',
+  peach: '#FFD2C2',
+  accentRed: '#E8664A',
+  white: '#FFFFFF',
+  overlay: 'rgba(10,20,15,0.45)',
+} as const;
