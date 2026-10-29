@@ -23,7 +23,7 @@ export const BundleCard = memo(function BundleCard({ bundle, onPress }: { bundle
       <LinearGradient colors={['rgba(8,24,16,0.05)', 'rgba(20,54,38,0.92)']} style={styles.fade} />
       {bundle.savings ? (
         <View style={styles.pill}>
-          <AppText variant="eyebrow" color={colors.forestDeep} style={styles.pillText}>
+          <AppText variant="eyebrow" color={colors.forestDeep}>
             {bundle.savings}
           </AppText>
         </View>
@@ -61,7 +61,6 @@ const styles = StyleSheet.create({
   card: { width: W, height: H, borderRadius: radius.lg, overflow: 'hidden', justifyContent: 'space-between', backgroundColor: colors.surfaceMuted, ...shadow.card },
   fade: { ...StyleSheet.absoluteFill, top: '30%' },
   pill: { alignSelf: 'flex-start', margin: 12, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.sm, backgroundColor: 'rgba(255,255,255,0.92)' },
-  pillText: { fontSize: 10 },
   copy: { padding: 14, gap: 2 },
   desc: { opacity: 0.92 },
 });

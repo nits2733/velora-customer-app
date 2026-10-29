@@ -23,6 +23,6 @@ export const textVariants: Record<TextVariant, TextStyle> = {
   bodyStrong: { fontFamily: fonts.sansSemi, fontSize: 14, lineHeight: 20 },
   caption: { fontFamily: fonts.sans, fontSize: 12, lineHeight: 17 },
   captionStrong: { fontFamily: fonts.sansSemi, fontSize: 12, lineHeight: 17 },
-  eyebrow: { fontFamily: fonts.sansBold, fontSize: 11, lineHeight: 15, letterSpacing: 1, textTransform: 'uppercase' },
+  eyebrow: { fontFamily: fonts.sansBold, fontSize: 12, lineHeight: 16, letterSpacing: 1, textTransform: 'uppercase' },
   button: { fontFamily: fonts.sansBold, fontSize: 14, lineHeight: 18 },
 };

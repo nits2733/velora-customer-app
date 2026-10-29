@@ -29,7 +29,7 @@ export function FeaturedService({ rooms }: { rooms: string[] }) {
         <LinearGradient colors={['rgba(8,24,16,0.05)', 'rgba(20,54,38,0.9)']} style={styles.fade} />
         <View style={styles.pill}>
           <Feather name="home" size={12} color={colors.forestDeep} />
-          <AppText variant="eyebrow" color={colors.forestDeep} style={styles.pillText}>
+          <AppText variant="eyebrow" color={colors.forestDeep}>
             Featured service
           </AppText>
         </View>
@@ -75,7 +75,6 @@ const styles = StyleSheet.create({
   image: { height: IMAGE_H, justifyContent: 'space-between', backgroundColor: colors.surfaceMuted },
   fade: { ...StyleSheet.absoluteFill, top: '30%' },
   pill: { alignSelf: 'flex-start', margin: 14, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.sm, backgroundColor: 'rgba(255,255,255,0.92)' },
-  pillText: { fontSize: 10 },
   title: { padding: 16 },
   body: { padding: 16, gap: 12 },
   rooms: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

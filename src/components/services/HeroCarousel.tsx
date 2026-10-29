@@ -100,7 +100,7 @@ const HeroCard = memo(function HeroCard({ promo, index, x, step, width, onPress 
       </Animated.View>
       <LinearGradient colors={['rgba(8,24,16,0.05)', 'rgba(20,54,38,0.92)']} style={styles.fade} />
       <View style={styles.pill}>
-        <AppText variant="eyebrow" color={colors.forestDeep} style={styles.pillText} numberOfLines={1}>
+        <AppText variant="eyebrow" color={colors.forestDeep} numberOfLines={1}>
           {promo.eyebrow}
         </AppText>
       </View>
@@ -140,7 +140,6 @@ const styles = StyleSheet.create({
   imageWrap: { position: 'absolute', top: 0, bottom: 0 },
   fade: { ...StyleSheet.absoluteFill, top: '25%' },
   pill: { alignSelf: 'flex-start', margin: 14, maxWidth: '80%', paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.sm, backgroundColor: 'rgba(255,255,255,0.92)' },
-  pillText: { fontSize: 10 },
   copy: { padding: 16, gap: 6 },
   promise: { opacity: 0.92 },
   cta: { alignSelf: 'flex-start', marginTop: 6, minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.white },
