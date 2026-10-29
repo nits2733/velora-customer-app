@@ -12,5 +12,5 @@ export interface ApiErrorBody {
   status?: number;
   error?: string;
   message?: string;
-  fieldErrors?: Record<string, string>;
+  fieldErrors?: { field?: string; message?: string }[];
 }

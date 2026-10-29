@@ -15,6 +15,9 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import '@/config/support'; // fails a release build with no support channel
+import { QueryProvider } from '@/lib/queryClient';
+import { sessionStore } from '@/session/sessionStore';
 import { colors } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -33,13 +36,20 @@ export default function RootLayout() {
     if (loaded || error) SplashScreen.hideAsync().catch(() => {});
   }, [loaded, error]);
 
+  // Restore a saved sign-in before any screen asks who the customer is.
+  useEffect(() => {
+    sessionStore.init();
+  }, []);
+
   if (!loaded && !error) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
       <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+        <QueryProvider>
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+        </QueryProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

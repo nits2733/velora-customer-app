@@ -5,7 +5,7 @@ export const colors = {
   border: '#E6E4DA',
   ink: '#16201B',
   inkSoft: '#46524B',
-  inkMuted: '#6F7A73',
+  inkMuted: '#636E67',
   forest: '#1F4D3A',
   forestDeep: '#143626',
   forestSoft: '#DCE9DA',
@@ -13,6 +13,11 @@ export const colors = {
   clay: '#6B2E1F',
   peach: '#FFD2C2',
   accentRed: '#E8664A',
+  // Status tones. Each foreground/background pair meets AA contrast (checked in theme tests).
+  amber: '#7A4B00',
+  amberSoft: '#FFF0C7',
+  danger: '#9B2C1F',
+  dangerSoft: '#FBE3DF',
   white: '#FFFFFF',
   overlay: 'rgba(10,20,15,0.45)',
 } as const;
